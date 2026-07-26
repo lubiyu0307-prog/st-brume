@@ -45,9 +45,9 @@
     --brume-border: rgba(231, 242, 238, 0.08);
     --brume-border-2: rgba(231, 242, 238, 0.16);
     --brume-nav: rgba(13, 21, 28, 0.94);
-    --brume-surface-glass: rgba(22, 35, 44, 0.72);
+    --brume-surface-glass: rgba(22, 35, 44, 0.88);
     --brume-accent-glass: rgba(95, 212, 178, 0.55);
-    --brume-panel: rgba(16, 27, 34, 0.92);
+    --brume-panel: rgba(16, 27, 34, 0.97);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     --brume-fog-1: rgba(63, 178, 141, 0.5);
     --brume-fog-2: rgba(107, 130, 200, 0.4);
@@ -68,9 +68,9 @@
     --brume-border: rgba(227, 243, 245, 0.08);
     --brume-border-2: rgba(227, 243, 245, 0.16);
     --brume-nav: rgba(6, 24, 34, 0.94);
-    --brume-surface-glass: rgba(10, 34, 48, 0.72);
+    --brume-surface-glass: rgba(10, 34, 48, 0.88);
     --brume-accent-glass: rgba(85, 207, 224, 0.55);
-    --brume-panel: rgba(4, 20, 31, 0.92);
+    --brume-panel: rgba(4, 20, 31, 0.97);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
     --brume-fog-1: rgba(60, 170, 190, 0.4);
     --brume-fog-2: rgba(70, 120, 200, 0.3);
@@ -91,9 +91,9 @@
     --brume-border: rgba(232, 235, 239, 0.08);
     --brume-border-2: rgba(232, 235, 239, 0.16);
     --brume-nav: rgba(20, 23, 28, 0.94);
-    --brume-surface-glass: rgba(29, 33, 40, 0.72);
+    --brume-surface-glass: rgba(29, 33, 40, 0.9);
     --brume-accent-glass: rgba(147, 169, 190, 0.72);
-    --brume-panel: rgba(20, 23, 28, 0.94);
+    --brume-panel: rgba(20, 23, 28, 0.97);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
     --brume-fog-1: rgba(58, 70, 86, 0.6);
     --brume-fog-2: rgba(38, 46, 58, 0.68);
@@ -495,19 +495,20 @@
 :root[data-brume-theme] .swipes-counter { color: var(--brume-ink-3); }
 
 /* ═══ LINE 式泡泡模式 ════════════════════════════════════════
-   角色靠左（surface 玻璃泡泡）、玩家靠右（accent 玻璃泡泡）、
-   圓頭貼、82% 最大寬——Brume 聊天室的招牌版面。 */
+   角色靠左、玩家靠右、圓頭貼、82% 最大寬。頭像釘在泡泡外側
+   「上」角（角色左上／玩家右上）。 */
 :root[data-brume-bubbles='on'] #chat .mes {
     display: flex !important;
     flex-direction: row;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 8px;
     padding: 5px 12px !important;
     border: none !important;
     margin: 0 !important;
 }
 :root[data-brume-bubbles='on'] #chat .mes .mesAvatarWrapper {
-    align-self: flex-end;
+    align-self: flex-start;
+    margin-top: 2px;
     padding: 0;
 }
 :root[data-brume-bubbles='on'] #chat .mes .avatar,
@@ -516,14 +517,18 @@
     height: 36px !important;
     border-radius: 50% !important;
 }
+/* 泡泡底：高不透明實色——半透明玻璃只在 Brume 自家深色星空上成立，
+   使用者自訂的亮色背景圖會把字淹掉，這裡不賭透明度。
+   缺口跟著頭像移到上角。 */
 :root[data-brume-bubbles='on'] #chat .mes .mes_block {
     max-width: min(82%, 680px);
     padding: 8px 13px 9px !important;
     margin: 0 !important;
-    background: var(--brume-surface-glass);
-    border: 1px solid var(--brume-border);
+    background: var(--brume-surface);
+    background: color-mix(in srgb, var(--brume-surface) 93%, transparent);
+    border: 1px solid var(--brume-border-2);
     border-radius: 18px;
-    border-bottom-left-radius: 6px;
+    border-top-left-radius: 6px;
     backdrop-filter: var(--brume-blur);
     -webkit-backdrop-filter: var(--brume-blur);
     box-shadow: var(--brume-shadow);
@@ -532,11 +537,11 @@
     flex-direction: row-reverse;
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block {
-    background: var(--brume-accent-glass);
+    background: var(--brume-accent);
     border-color: transparent;
     border-radius: 18px;
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 6px;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 6px;
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text { color: #fff; }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text q { color: rgba(255, 255, 255, 0.92); }
@@ -649,11 +654,37 @@
     letter-spacing: 0.5px;
     color: var(--brume-ink-3) !important;
 }
+/* 橫向溢出根治：條目內任何元件都不得撐破容器寬——
+   flex/grid 子項預設 min-width:auto 會拒絕縮小，逐層鎖 min-width:0，
+   容器自己再上保險 overflow-x。 */
+:root[data-brume-theme] #WorldInfo,
+:root[data-brume-theme] #world_popup {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+:root[data-brume-theme] .world_entry,
+:root[data-brume-theme] .world_entry_form,
+:root[data-brume-theme] .world_entry .inline-drawer,
+:root[data-brume-theme] .world_entry .inline-drawer-header,
+:root[data-brume-theme] .world_entry_thin_controls,
+:root[data-brume-theme] .WIEntryTitleAndStatus,
+:root[data-brume-theme] .WIEnteryHeaderControls,
+:root[data-brume-theme] .world_entry_form_control {
+    min-width: 0 !important;
+    max-width: 100%;
+}
+:root[data-brume-theme] .world_entry .inline-drawer-header { flex-wrap: wrap; }
+:root[data-brume-theme] .world_entry textarea[name='comment'] {
+    min-width: 0;
+    width: 100%;
+}
+:root[data-brume-theme] .world_entry .text_pole { max-width: 100%; }
+
 /* 窄螢幕（手機直向）：四個小欄位改 2×2 網格、label 在上、輸入框滿寬 */
 @media (max-width: 1000px) {
     :root[data-brume-theme] .WIEnteryHeaderControls {
         display: grid !important;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px 10px;
         width: 100%;
         margin-top: 6px;
@@ -690,10 +721,11 @@
     max-width: 100%;
     flex: 1;
 }
-/* 自訂面板常自帶深色底：讓位的那一則泡泡底改全透明色墊，避免疊色 */
+/* 自訂面板常自帶深色底：讓位的那一則改中性實色底，避免跟主色疊色 */
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div),
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) {
-    background: var(--brume-surface-glass);
+    background: var(--brume-surface);
+    background: color-mix(in srgb, var(--brume-surface) 93%, transparent);
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div) .mes_text,
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) .mes_text {

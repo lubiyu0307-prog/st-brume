@@ -12,6 +12,7 @@
 
     const MODULE = 'st_brume';
     const LS_KEY = 'st_brume_settings';
+    const VERSION = '1.0.3';
 
     const DEFAULTS = Object.freeze({
         theme: 'aurora',     // aurora | aquarium | night
@@ -144,7 +145,7 @@
         panel.innerHTML =
             '<div class="inline-drawer">' +
             '  <div class="inline-drawer-toggle inline-drawer-header">' +
-            '    <b>Brume UI</b>' +
+            `    <b>Brume UI <small style="opacity:.55;font-weight:400">v${VERSION}</small></b>` +
             '    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>' +
             '  </div>' +
             '  <div class="inline-drawer-content">' +
@@ -181,7 +182,22 @@
         bindCheck('brume_narrow', 'narrow');
     }
 
+    // 快取剋星：iOS Safari／PWA 會抱著舊 style.css 不放——
+    // 只要 JS 是新版，就把樣式連結換成帶版本參數的網址，強制重抓。
+    function bustStyleCache() {
+        try {
+            document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+                const href = l.getAttribute('href') || '';
+                if (href.includes('st-brume') && href.includes('style.css') && !href.includes('v=' + VERSION)) {
+                    l.setAttribute('href', href.split('?')[0] + '?v=' + VERSION);
+                }
+            });
+        } catch (_) { }
+    }
+
     function init() {
+        console.log('[Brume UI] v' + VERSION);
+        bustStyleCache();
         settings = loadSettings();
         buildSky();
         apply();

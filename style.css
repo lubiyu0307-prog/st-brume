@@ -699,3 +699,27 @@
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) .mes_text {
     color: var(--brume-ink);
 }
+
+/* ═══ 手機版世界書：真機補洞（v1.0.3）══════════════════════════
+   select2（關鍵字選單／世界書選擇器）由 JS 寫死 inline width——
+   在橫向算出的寬度轉回直向就撐破螢幕。CSS !important 蓋得過
+   inline style，鎖滿寬。僅手機生效，不動桌面。 */
+@media screen and (max-width: 1000px) {
+    :root[data-brume-theme] #WorldInfo .select2-container,
+    :root[data-brume-theme] #world_popup .select2-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    :root[data-brume-theme] #WorldInfo .select2-selection--multiple {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+}
+/* 直向手機的最後保險：殘餘溢出一律裁掉、不准把頁面撐寬
+   （clip 不產生捲動容器，不影響面板直向捲動） */
+@media screen and (max-width: 450px) {
+    :root[data-brume-theme] #world_popup,
+    :root[data-brume-theme] #wi-holder {
+        overflow-x: clip;
+    }
+}

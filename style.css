@@ -729,18 +729,27 @@
    且會跨裝置同步——電腦上調過面板大小，手機就被同一個寬度撐爆。
    官方手機 CSS 沒加 !important 蓋不掉；這裡蓋掉。僅手機生效。 */
 @media screen and (max-width: 1000px) {
+    /* 抽屜面板本體（定位元素）：寬度、位移、水平 margin 全部蓋章——
+       MovingUI 會寫 width＋left＋transform:translate＋margin，缺一不可 */
     :root[data-brume-theme] .drawer-content,
-    :root[data-brume-theme] #WorldInfo,
-    :root[data-brume-theme] #world_popup,
-    :root[data-brume-theme] #wi-holder {
-        width: 100% !important;
+    :root[data-brume-theme] #WorldInfo {
+        width: 100dvw !important;
         max-width: 100dvw !important;
         min-width: 0 !important;
         left: 0 !important;
-        right: 0 !important;
-    }
-    :root[data-brume-theme] #world_popup {
-        height: auto !important;
+        right: auto !important;
+        margin-inline: 0 !important;
         transform: none !important;
+    }
+    /* 面板內層（一般流內元素）：auto 寬跟著父層內容區走，
+       不能寫 100dvw——會疊上父層 padding 又凸出去 */
+    :root[data-brume-theme] #wi-holder,
+    :root[data-brume-theme] #world_popup {
+        width: auto !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-inline: 0 !important;
+        transform: none !important;
+        height: auto !important;
     }
 }

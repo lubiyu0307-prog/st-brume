@@ -617,95 +617,63 @@
 :root[data-brume-theme] .recentChat .chatActions .menu_button:hover { color: var(--brume-accent) !important; }
 :root[data-brume-theme] .recentChatPinned { color: var(--brume-accent); }
 
-/* ═══ 世界書（World Info）——手機相容整修 ═══════════════════════
-   對照 index.html #entry_edit_template 的實際結構：
-   .world_entry > .world_entry_form > .inline-drawer >
-     .inline-drawer-header（標題列＋ .WIEnteryHeaderControls 四小欄）
-   病根：小欄位（插入位置/深度/順序/觸發%）在窄螢幕擠成一團、
-   輸入框寬窄不一。改法：條目變玻璃卡片；窄螢幕時四小欄改成
-   2×2 網格、label 移到輸入框上方、輸入框統一撐滿。 */
-:root[data-brume-theme] .world_entry {
+/* ═══ 世界書（World Info）═══════════════════════════════════
+   策略（v1.0.2 起）：桌面版完全保留 SillyTavern 原生版面、只上配色；
+   版面手術一律鎖在 ≤1000px（跟 ST 自家 mobile-styles.css 同一條線）。
+   教訓：全域 flex-wrap／min-width 覆寫會跟桌面版面打架——標題欄被
+   擠窄後，ST 的 textarea 自動調高 JS 把它撐成細長條。 */
+
+/* 配色皮膚（桌面與手機共用，純顏色不動版面） */
+:root[data-brume-theme] .wi-card-entry {
     background: var(--brume-surface-glass) !important;
-    border: 1px solid var(--brume-border) !important;
-    border-radius: 16px !important;
-    margin: 0 0 10px !important;
-    padding: 8px 10px !important;
-    backdrop-filter: var(--brume-blur);
-    -webkit-backdrop-filter: var(--brume-blur);
-}
-:root[data-brume-theme] .world_entry .inline-drawer-header {
-    background: transparent !important;
-    border: none !important;
+    border-color: var(--brume-border-2) !important;
+    border-radius: 14px !important;
+    margin-bottom: 8px !important;
 }
 :root[data-brume-theme] .world_entry .drag-handle { color: var(--brume-ink-3); }
-:root[data-brume-theme] .world_entry .killSwitch { color: var(--brume-accent); }
+:root[data-brume-theme] .world_entry .killSwitch.fa-toggle-on { color: var(--brume-accent) !important; }
 :root[data-brume-theme] .world_entry .killSwitch.fa-toggle-off { color: var(--brume-ink-3); }
-:root[data-brume-theme] .world_entry textarea[name='comment'] {
-    font-size: 14.5px !important;
-    background: transparent !important;
-    border-color: transparent !important;
-}
-:root[data-brume-theme] .world_entry textarea[name='comment']:focus {
-    background: var(--brume-surface) !important;
-    border-color: var(--brume-accent) !important;
-}
 :root[data-brume-theme] .WIEntryHeaderTitleMobile {
     font-size: 11px !important;
     letter-spacing: 0.5px;
     color: var(--brume-ink-3) !important;
 }
-/* 橫向溢出根治：條目內任何元件都不得撐破容器寬——
-   flex/grid 子項預設 min-width:auto 會拒絕縮小，逐層鎖 min-width:0，
-   容器自己再上保險 overflow-x。 */
-:root[data-brume-theme] #WorldInfo,
-:root[data-brume-theme] #world_popup {
-    max-width: 100%;
-    overflow-x: hidden;
-}
-:root[data-brume-theme] .world_entry,
-:root[data-brume-theme] .world_entry_form,
-:root[data-brume-theme] .world_entry .inline-drawer,
-:root[data-brume-theme] .world_entry .inline-drawer-header,
-:root[data-brume-theme] .world_entry_thin_controls,
-:root[data-brume-theme] .WIEntryTitleAndStatus,
-:root[data-brume-theme] .WIEnteryHeaderControls,
-:root[data-brume-theme] .world_entry_form_control {
-    min-width: 0 !important;
-    max-width: 100%;
-}
-:root[data-brume-theme] .world_entry .inline-drawer-header { flex-wrap: wrap; }
-:root[data-brume-theme] .world_entry textarea[name='comment'] {
-    min-width: 0;
-    width: 100%;
-}
-:root[data-brume-theme] .world_entry .text_pole { max-width: 100%; }
 
-/* 窄螢幕（手機直向）：四個小欄位改 2×2 網格、label 在上、輸入框滿寬 */
-@media (max-width: 1000px) {
-    :root[data-brume-theme] .WIEnteryHeaderControls {
+/* 手機（≤1000px，與 ST mobile-styles 同界線）：
+   ST 已把標題列/控制列各自撐滿寬，這裡只做最後一步——
+   四個小欄位（插入位置/深度/順序/觸發%）排成不會溢出的 2×2 網格、
+   label 在上、輸入框統一滿格。條目卡自身用 overflow-x: clip 當保險
+   （clip 不產生捲動容器，不干擾面板既有的直向捲動）。 */
+@media screen and (max-width: 1000px) {
+    :root[data-brume-theme] .world_entry { overflow-x: clip; }
+    :root[data-brume-theme] .WIEnteryHeaderControls,
+    :root[data-brume-theme] .WIEntryHeaderControls {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px 10px;
         width: 100%;
         margin-top: 6px;
     }
-    :root[data-brume-theme] .WIEnteryHeaderControls .world_entry_form_control {
+    :root[data-brume-theme] .WIEnteryHeaderControls .world_entry_form_control,
+    :root[data-brume-theme] .WIEntryHeaderControls .world_entry_form_control {
         display: flex !important;
         flex-direction: column;
         align-items: stretch;
         gap: 3px;
         margin: 0 !important;
+        min-width: 0;
     }
-    :root[data-brume-theme] .WIEnteryHeaderControls .text_pole {
+    :root[data-brume-theme] .WIEnteryHeaderControls .text_pole,
+    :root[data-brume-theme] .WIEntryHeaderControls .text_pole {
         width: 100% !important;
         max-width: none !important;
         margin: 0 !important;
         min-height: 34px;
     }
+    /* 標題輸入框可以縮（flex 子項 min-width:auto 是撐寬元凶），但不強制定寬 */
+    :root[data-brume-theme] .WIEntryTitleAndStatus,
+    :root[data-brume-theme] .WIEntryTitleAndStatus .flex-container { min-width: 0; }
 }
-/* 世界書全域設定區與清單容器：卡片間距、去掉硬邊 */
-:root[data-brume-theme] #world_popup_entries_list { padding: 4px 2px; }
-:root[data-brume-theme] #WorldInfo .text_pole { min-height: 32px; }
 
 /* ═══ 卡片自訂版面相容（MVU 狀態欄／regex 渲染的 HTML 面板）═════
    原則：擴充在 .mes_text 內文一律不用 !important——卡片自帶的

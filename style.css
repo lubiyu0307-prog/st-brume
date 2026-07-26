@@ -51,6 +51,8 @@
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     --brume-fog-1: rgba(63, 178, 141, 0.5);
     --brume-fog-2: rgba(107, 130, 200, 0.4);
+    --brume-on-accent: #0B2A21;
+    --brume-on-accent-dim: rgba(11, 42, 33, 0.66);
 }
 
 /* 水族館（aquarium）：深夜水族館的大水槽、水色青生物光 */
@@ -74,6 +76,8 @@
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
     --brume-fog-1: rgba(60, 170, 190, 0.4);
     --brume-fog-2: rgba(70, 120, 200, 0.3);
+    --brume-on-accent: #062A33;
+    --brume-on-accent-dim: rgba(6, 42, 51, 0.64);
 }
 
 /* 夜霧（night）：墨藍黑、月光白、霧藍 accent */
@@ -97,6 +101,8 @@
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
     --brume-fog-1: rgba(58, 70, 86, 0.6);
     --brume-fog-2: rgba(38, 46, 58, 0.68);
+    --brume-on-accent: #10141B;
+    --brume-on-accent-dim: rgba(16, 20, 27, 0.64);
 }
 
 /* 玻璃模糊開關（設定「玻璃模糊」；手機發熱時可關） */
@@ -296,17 +302,17 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(70% 32% at 50% -6%, rgba(120, 220, 235, 0.22), transparent 70%),
-        linear-gradient(168deg, transparent 30%, rgba(85, 207, 224, 0.05) 46%, transparent 60%),
-        linear-gradient(196deg, transparent 34%, rgba(85, 207, 224, 0.04) 52%, transparent 66%);
+        radial-gradient(70% 32% at 50% -6%, rgba(120, 220, 235, 0.42), transparent 70%),
+        linear-gradient(168deg, transparent 26%, rgba(85, 207, 224, 0.16) 46%, transparent 64%),
+        linear-gradient(196deg, transparent 30%, rgba(85, 207, 224, 0.13) 52%, transparent 70%);
 }
 #brume-sky .brume-aqua i {
     position: absolute;
     bottom: -20px;
-    width: 7px;
-    height: 7px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, rgba(220, 250, 255, 0.5), rgba(140, 220, 235, 0.14) 70%);
+    background: radial-gradient(circle at 35% 30%, rgba(220, 250, 255, 0.66), rgba(140, 220, 235, 0.2) 70%);
     animation: brume-rise 14s linear infinite;
     will-change: transform, opacity;
 }
@@ -524,8 +530,8 @@
     max-width: min(82%, 680px);
     padding: 8px 13px 9px !important;
     margin: 0 !important;
-    background: var(--brume-surface);
-    background: color-mix(in srgb, var(--brume-surface) 93%, transparent);
+    background: var(--brume-surface-2);
+    background: color-mix(in srgb, var(--brume-surface-2) 93%, transparent);
     border: 1px solid var(--brume-border-2);
     border-radius: 18px;
     border-top-left-radius: 6px;
@@ -543,11 +549,21 @@
     border-top-left-radius: 18px;
     border-top-right-radius: 6px;
 }
-:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text { color: #fff; }
-:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text q { color: rgba(255, 255, 255, 0.92); }
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text { color: var(--brume-on-accent); }
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text q { color: var(--brume-on-accent); }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text em,
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text i {
-    color: rgba(24, 32, 42, 0.72);
+    color: var(--brume-on-accent-dim);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .name_text,
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .timestamp {
+    color: var(--brume-on-accent-dim);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_buttons .mes_button {
+    color: var(--brume-on-accent-dim);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_buttons .mes_button:hover {
+    color: var(--brume-on-accent);
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .ch_name {
     flex-direction: row-reverse;
@@ -795,3 +811,34 @@
     color: var(--brume-accent) !important;
     opacity: 1;
 }
+
+/* ═══ 思考區塊（reasoning）與收合列去油亮（v1.0.8）═══════════ */
+:root[data-brume-theme] .mes_reasoning_details {
+    background: var(--brume-surface);
+    border: 1px solid var(--brume-border-2);
+    border-radius: 12px;
+    padding: 6px 11px;
+    margin: 4px 0 8px;
+}
+:root[data-brume-theme] .mes_reasoning_summary { color: var(--brume-ink-2); }
+:root[data-brume-theme] .mes_reasoning_header_title { font-size: 12.5px; }
+:root[data-brume-theme] .mes_reasoning {
+    color: var(--brume-ink-3);
+    font-size: 13px;
+    border-top: 1px dashed var(--brume-border-2);
+    margin-top: 6px;
+    padding-top: 6px;
+}
+/* ST 原生 .standoutHeader 是油亮漸層（擴充面板每一列的來源），壓成霧面卡片 */
+:root[data-brume-theme] .standoutHeader {
+    background-image: none !important;
+    background: var(--brume-surface-2) !important;
+    border: 1px solid var(--brume-border) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink) !important;
+    text-shadow: none !important;
+}
+:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header { color: var(--brume-ink); }
+
+/* 名字與時間戳的呼吸間距 */
+:root[data-brume-theme] .mes .name_text { margin-right: 6px; }

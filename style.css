@@ -759,3 +759,39 @@
         height: auto !important;
     }
 }
+
+/* ═══ 頂欄精緻化（v1.0.7）══════════════════════════════════════
+   比照 Brume 頂欄：小圖示、勻間距、玻璃底。
+   注意：圖示位於 #top-settings-holder（#top-bar 只是背景條），
+   選擇器寫錯位置整組落空。 */
+:root[data-brume-theme] {
+    --topBarIconSize: calc(var(--mainFontSize) * 1.4) !important;
+}
+:root[data-brume-theme] #top-bar {
+    box-shadow: none !important;
+    height: auto;
+}
+:root[data-brume-theme] #top-settings-holder {
+    justify-content: space-evenly;
+    align-items: center;
+}
+:root[data-brume-theme] #top-settings-holder .drawer {
+    width: auto;
+    flex: 1;
+}
+:root[data-brume-theme] #top-settings-holder .drawer-icon {
+    padding: 9px 4px;
+    color: var(--brume-ink-2);
+    transition: color 0.2s, opacity 0.2s;
+}
+:root[data-brume-theme] #top-settings-holder .drawer-icon.closedIcon {
+    opacity: 0.8;
+}
+:root[data-brume-theme] #top-settings-holder .drawer-icon.closedIcon:hover {
+    opacity: 1;
+    color: var(--brume-accent-deep);
+}
+:root[data-brume-theme] #top-settings-holder .drawer-icon.openIcon {
+    color: var(--brume-accent) !important;
+    opacity: 1;
+}

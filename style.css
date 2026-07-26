@@ -44,10 +44,10 @@
     --brume-accent-pale: #1B3029;
     --brume-border: rgba(231, 242, 238, 0.08);
     --brume-border-2: rgba(231, 242, 238, 0.16);
-    --brume-nav: rgba(13, 21, 28, 0.94);
-    --brume-surface-glass: rgba(22, 35, 44, 0.88);
+    --brume-nav: rgba(13, 21, 28, 0.8);
+    --brume-surface-glass: rgba(22, 35, 44, 0.62);
     --brume-accent-glass: rgba(95, 212, 178, 0.55);
-    --brume-panel: rgba(16, 27, 34, 0.97);
+    --brume-panel: rgba(16, 27, 34, 0.9);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     --brume-fog-1: rgba(63, 178, 141, 0.5);
     --brume-fog-2: rgba(107, 130, 200, 0.4);
@@ -69,10 +69,10 @@
     --brume-accent-pale: #0F3540;
     --brume-border: rgba(227, 243, 245, 0.08);
     --brume-border-2: rgba(227, 243, 245, 0.16);
-    --brume-nav: rgba(6, 24, 34, 0.94);
-    --brume-surface-glass: rgba(10, 34, 48, 0.88);
+    --brume-nav: rgba(6, 24, 34, 0.8);
+    --brume-surface-glass: rgba(10, 34, 48, 0.62);
     --brume-accent-glass: rgba(85, 207, 224, 0.55);
-    --brume-panel: rgba(4, 20, 31, 0.97);
+    --brume-panel: rgba(4, 20, 31, 0.9);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
     --brume-fog-1: rgba(60, 170, 190, 0.4);
     --brume-fog-2: rgba(70, 120, 200, 0.3);
@@ -94,10 +94,10 @@
     --brume-accent-pale: #222933;
     --brume-border: rgba(232, 235, 239, 0.08);
     --brume-border-2: rgba(232, 235, 239, 0.16);
-    --brume-nav: rgba(20, 23, 28, 0.94);
-    --brume-surface-glass: rgba(29, 33, 40, 0.9);
+    --brume-nav: rgba(20, 23, 28, 0.85);
+    --brume-surface-glass: rgba(29, 33, 40, 0.66);
     --brume-accent-glass: rgba(147, 169, 190, 0.72);
-    --brume-panel: rgba(20, 23, 28, 0.97);
+    --brume-panel: rgba(20, 23, 28, 0.92);
     --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
     --brume-fog-1: rgba(58, 70, 86, 0.6);
     --brume-fog-2: rgba(38, 46, 58, 0.68);
@@ -106,8 +106,14 @@
 }
 
 /* 玻璃模糊開關（設定「玻璃模糊」；手機發熱時可關） */
-:root[data-brume-theme] { --brume-blur: blur(8px); }
-:root[data-brume-blur='off'] { --brume-blur: none; }
+:root[data-brume-theme] { --brume-blur: blur(18px) saturate(1.5); }
+/* 關模糊＝省電模式：玻璃自動回到高不透明，維持可讀 */
+:root[data-brume-blur='off'] {
+    --brume-blur: none;
+    --brume-surface-glass: color-mix(in srgb, var(--brume-surface) 93%, transparent) !important;
+    --brume-accent-glass: color-mix(in srgb, var(--brume-accent) 92%, transparent) !important;
+    --brume-nav: color-mix(in srgb, var(--brume-bg-top) 95%, transparent) !important;
+}
 
 /* ═══ 蓋掉 SillyTavern 主題變數 ═══════════════════════════════
    ST 的主題色是 JS 寫進 root 的 inline style，
@@ -542,8 +548,7 @@
     max-width: min(82%, 680px);
     padding: 8px 13px 9px !important;
     margin: 0 !important;
-    background: var(--brume-surface-2);
-    background: color-mix(in srgb, var(--brume-surface-2) 93%, transparent);
+    background: var(--brume-surface-glass);
     border: 1px solid var(--brume-border-2);
     border-radius: 18px;
     border-top-left-radius: 6px;
@@ -555,7 +560,7 @@
     flex-direction: row-reverse;
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block {
-    background: var(--brume-accent);
+    background: var(--brume-accent-glass);
     border-color: transparent;
     border-radius: 18px;
     border-top-left-radius: 18px;
@@ -720,8 +725,7 @@
 /* 自訂面板常自帶深色底：讓位的那一則改中性實色底，避免跟主色疊色 */
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div),
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) {
-    background: var(--brume-surface);
-    background: color-mix(in srgb, var(--brume-surface) 93%, transparent);
+    background: var(--brume-surface-glass);
 }
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div) .mes_text,
 :root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) .mes_text {
@@ -981,3 +985,10 @@
 :root[data-brume-theme] .drawer-content h3,
 :root[data-brume-theme] .drawer-content h4,
 :root[data-brume-theme] .drawer-content h5 { color: var(--brume-ink); }
+
+/* 自訂背景鋪到實體螢幕底（v1.1.1）：ST 用 100dvh 撐背景圖，
+   Safari 工具列收合時實體底部會露出畫布色＝底部色帶。lvh 蓋過去。 */
+:root[data-brume-sky='off'] #bg1,
+:root[data-brume-sky='off'] #bg_custom {
+    height: 100lvh !important;
+}

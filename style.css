@@ -126,10 +126,15 @@
     --mainFontFamily: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Segoe UI', sans-serif !important;
 }
 
+/* 底色放 html 畫布、body 一律透明——負 z-index 的夜空層畫在
+   body 背景「之下」（CSS 繪製順序），body 一鋪色夜空就整組被蓋。 */
+:root[data-brume-theme] {
+    background-color: var(--brume-bg-bottom) !important;
+}
 :root[data-brume-theme] body {
     font-family: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Segoe UI', sans-serif !important;
     color: var(--brume-ink);
-    background-color: var(--brume-bg-bottom) !important;
+    background: transparent !important;
 }
 
 /* ═══ 夜空背景（#brume-sky，index.js 生成）═════════════════════
@@ -137,9 +142,17 @@
    關閉「Brume 夜空」開關即隱藏、還原 ST 背景圖。 */
 :root[data-brume-sky='off'] #brume-sky { display: none; }
 
+/* ST 在 <html> 上掛 transform/perspective——fixed 元素的定位基準被
+   劫持成 0 高的 html 盒，inset:0 會算出 0 高。不依賴自動尺寸，
+   明確給滿版寬高（這就是「手機上永遠看不到夜空動畫」的病根）。 */
 #brume-sky {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    width: 100dvw;
+    height: 100dvh;
     z-index: -1;
     pointer-events: none;
     overflow: hidden;
@@ -784,7 +797,6 @@
 }
 :root[data-brume-theme] #top-bar {
     box-shadow: none !important;
-    height: auto;
 }
 :root[data-brume-theme] #top-settings-holder {
     justify-content: space-evenly;
@@ -878,3 +890,94 @@
 :root[data-brume-theme] #send_but { color: var(--brume-accent) !important; }
 :root[data-brume-theme] #mes_stop { color: #D69C7E !important; }
 :root[data-brume-theme] #send_textarea { min-width: 0; }
+
+/* ═══ 夜空 vs 背景圖的圖層戰爭終結（v1.1.0）═══════════════════
+   ST 的背景圖層疊在夜空之上——手機一設過背景圖，極光/水族館
+   整組被蓋住（「電腦有動畫、手機沒有」的真正原因）。
+   語義明確化:開「Brume 夜空」＝Brume 場景與動畫;
+   關掉＝讓位給你自己的背景圖。 */
+:root[data-brume-sky='on'] #bg1,
+:root[data-brume-sky='on'] #bg_custom {
+    visibility: hidden !important;
+}
+
+/* ═══ 擴充面板列去油亮（v1.1.0）═══════════════════════════════
+   油亮漸層的正主是 #extensions_settings 系列選擇器（specificity 高），
+   v1.0.8 只壓了 .standoutHeader 沒壓到它們。 */
+:root[data-brume-theme] #extensions_settings .inline-drawer-toggle.inline-drawer-header,
+:root[data-brume-theme] #extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+:root[data-brume-theme] #user-settings-block h4,
+:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header {
+    background-image: none !important;
+    background-color: var(--brume-surface-2) !important;
+    border: 1px solid var(--brume-border) !important;
+    border-radius: 12px !important;
+    text-shadow: none !important;
+    color: var(--brume-ink) !important;
+    padding: 7px 12px !important;
+}
+:root[data-brume-theme] #extensions_settings .inline-drawer-toggle.inline-drawer-header:hover,
+:root[data-brume-theme] #extensions_settings2 .inline-drawer-toggle.inline-drawer-header:hover,
+:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header:hover {
+    background-color: var(--brume-accent-pale) !important;
+    border-color: var(--brume-accent) !important;
+}
+:root[data-brume-theme] .standoutHeader ~ .inline-drawer-content {
+    background-color: var(--brume-surface) !important;
+    border: 1px solid var(--brume-border) !important;
+    border-radius: 12px !important;
+}
+
+/* ═══ 全面掃尾：常見控件補漆（v1.1.0）═════════════════════════ */
+/* 快速回覆列（輸入框上方的 ** () 「」 膠囊列） */
+:root[data-brume-theme] #qr--bar { background: transparent !important; box-shadow: none !important; }
+:root[data-brume-theme] .qr--button {
+    background: var(--brume-surface-glass) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink-2) !important;
+    box-shadow: none !important;
+}
+:root[data-brume-theme] .qr--button:hover { color: var(--brume-accent-deep) !important; border-color: var(--brume-accent) !important; }
+/* 滑桿、標籤、右側選單鈕、select2 膠囊 */
+:root[data-brume-theme] .neo-range-slider { accent-color: var(--brume-accent); }
+:root[data-brume-theme] .neo-range-input {
+    background: var(--brume-surface) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 10px !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] .right_menu_button { color: var(--brume-ink-2); }
+:root[data-brume-theme] .right_menu_button:hover { color: var(--brume-accent); }
+:root[data-brume-theme] .tag {
+    background: var(--brume-surface-2) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 999px !important;
+    color: var(--brume-ink-2) !important;
+}
+:root[data-brume-theme] .select2-container .select2-selection {
+    background: var(--brume-surface) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] .select2-dropdown {
+    background: var(--brume-panel) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] .select2-container .select2-selection__choice {
+    background: var(--brume-surface-2) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 999px !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] .select2-results__option--highlighted {
+    background: var(--brume-accent-pale) !important;
+    color: var(--brume-accent-deep) !important;
+}
+/* 抽屜面板裡的標題字 */
+:root[data-brume-theme] .drawer-content h3,
+:root[data-brume-theme] .drawer-content h4,
+:root[data-brume-theme] .drawer-content h5 { color: var(--brume-ink); }

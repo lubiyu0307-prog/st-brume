@@ -723,3 +723,24 @@
         overflow-x: clip;
     }
 }
+
+/* ═══ 面板 inline 寬度蓋章（v1.0.4）════════════════════════════
+   ST 的可拖曳/縮放面板（MovingUI）會把寬度寫死在 inline style，
+   且會跨裝置同步——電腦上調過面板大小，手機就被同一個寬度撐爆。
+   官方手機 CSS 沒加 !important 蓋不掉；這裡蓋掉。僅手機生效。 */
+@media screen and (max-width: 1000px) {
+    :root[data-brume-theme] .drawer-content,
+    :root[data-brume-theme] #WorldInfo,
+    :root[data-brume-theme] #world_popup,
+    :root[data-brume-theme] #wi-holder {
+        width: 100% !important;
+        max-width: 100dvw !important;
+        min-width: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+    :root[data-brume-theme] #world_popup {
+        height: auto !important;
+        transform: none !important;
+    }
+}

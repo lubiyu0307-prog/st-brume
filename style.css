@@ -1,0 +1,701 @@
+/* ═══════════════════════════════════════════════════════════════
+   Brume UI — SillyTavern 介面擴充
+   把 SillyTavern 換上 Brume（https://github.com/lubiyu0307-prog/brume）
+   的設計語言：極夜低飽和色票、玻璃卡片、LINE 式聊天泡泡、
+   極光／星空／霧氣背景動畫、粉圓體。
+
+   所有規則都掛在 :root[data-brume-theme]（由 index.js 設定）之下——
+   停用擴充或移除屬性即完整還原 SillyTavern 原樣。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 介面字體：粉圓體（jf open 粉圓／Open Huninn，OFL 授權）──
+   由 jsDelivr（Fontsource 鏡像）載入；載不到時 font-display:swap
+   自動退回系統圓體，不留白畫面。 */
+@font-face {
+    font-family: 'Huninn';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/huninn@latest/latin-400-normal.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Huninn';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/huninn@latest/chinese-traditional-400-normal.woff2') format('woff2');
+}
+
+/* ═══ 色票（與 Brume src/assets/main.css 同源）═══════════════ */
+
+/* 極光（aurora，預設）：黑夜星空底、極光綠松 accent */
+:root[data-brume-theme],
+:root[data-brume-theme='aurora'] {
+    --brume-bg-top: #05070C;
+    --brume-bg-bottom: #101B22;
+    --brume-surface: #16232C;
+    --brume-surface-2: #1E2E38;
+    --brume-ink: #E7F2EE;
+    --brume-ink-2: #A5BCB7;
+    --brume-ink-3: #6E8683;
+    --brume-accent: #5FD4B2;
+    --brume-accent-deep: #8BE8CC;
+    --brume-accent-pale: #1B3029;
+    --brume-border: rgba(231, 242, 238, 0.08);
+    --brume-border-2: rgba(231, 242, 238, 0.16);
+    --brume-nav: rgba(13, 21, 28, 0.94);
+    --brume-surface-glass: rgba(22, 35, 44, 0.72);
+    --brume-accent-glass: rgba(95, 212, 178, 0.55);
+    --brume-panel: rgba(16, 27, 34, 0.92);
+    --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --brume-fog-1: rgba(63, 178, 141, 0.5);
+    --brume-fog-2: rgba(107, 130, 200, 0.4);
+}
+
+/* 水族館（aquarium）：深夜水族館的大水槽、水色青生物光 */
+:root[data-brume-theme='aquarium'] {
+    --brume-bg-top: #072634;
+    --brume-bg-bottom: #04141F;
+    --brume-surface: #0A2230;
+    --brume-surface-2: #103040;
+    --brume-ink: #E3F3F5;
+    --brume-ink-2: #9FC2C9;
+    --brume-ink-3: #668A93;
+    --brume-accent: #55CFE0;
+    --brume-accent-deep: #8AE4F0;
+    --brume-accent-pale: #0F3540;
+    --brume-border: rgba(227, 243, 245, 0.08);
+    --brume-border-2: rgba(227, 243, 245, 0.16);
+    --brume-nav: rgba(6, 24, 34, 0.94);
+    --brume-surface-glass: rgba(10, 34, 48, 0.72);
+    --brume-accent-glass: rgba(85, 207, 224, 0.55);
+    --brume-panel: rgba(4, 20, 31, 0.92);
+    --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    --brume-fog-1: rgba(60, 170, 190, 0.4);
+    --brume-fog-2: rgba(70, 120, 200, 0.3);
+}
+
+/* 夜霧（night）：墨藍黑、月光白、霧藍 accent */
+:root[data-brume-theme='night'] {
+    --brume-bg-top: #14171c;
+    --brume-bg-bottom: #14171c;
+    --brume-surface: #1d2128;
+    --brume-surface-2: #262c34;
+    --brume-ink: #e8ebef;
+    --brume-ink-2: #adb6c0;
+    --brume-ink-3: #77818d;
+    --brume-accent: #93a9be;
+    --brume-accent-deep: #b3c5d6;
+    --brume-accent-pale: #222933;
+    --brume-border: rgba(232, 235, 239, 0.08);
+    --brume-border-2: rgba(232, 235, 239, 0.16);
+    --brume-nav: rgba(20, 23, 28, 0.94);
+    --brume-surface-glass: rgba(29, 33, 40, 0.72);
+    --brume-accent-glass: rgba(147, 169, 190, 0.72);
+    --brume-panel: rgba(20, 23, 28, 0.94);
+    --brume-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --brume-fog-1: rgba(58, 70, 86, 0.6);
+    --brume-fog-2: rgba(38, 46, 58, 0.68);
+}
+
+/* 玻璃模糊開關（設定「玻璃模糊」；手機發熱時可關） */
+:root[data-brume-theme] { --brume-blur: blur(8px); }
+:root[data-brume-blur='off'] { --brume-blur: none; }
+
+/* ═══ 蓋掉 SillyTavern 主題變數 ═══════════════════════════════
+   ST 的主題色是 JS 寫進 root 的 inline style，
+   stylesheet 的 !important 優先權更高，穩定蓋過。 */
+:root[data-brume-theme] {
+    --SmartThemeBodyColor: var(--brume-ink) !important;
+    --SmartThemeEmColor: var(--brume-accent-deep) !important;
+    --SmartThemeQuoteColor: var(--brume-accent) !important;
+    --SmartThemeUnderlineColor: var(--brume-ink-2) !important;
+    --SmartThemeBorderColor: var(--brume-border-2) !important;
+    --SmartThemeShadowColor: rgba(0, 0, 0, 0.4) !important;
+    --SmartThemeBlurTintColor: var(--brume-panel) !important;
+    --SmartThemeChatTintColor: transparent !important;
+    --SmartThemeUserMesBlurTintColor: transparent !important;
+    --SmartThemeBotMesBlurTintColor: transparent !important;
+    --mainFontFamily: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Segoe UI', sans-serif !important;
+}
+
+:root[data-brume-theme] body {
+    font-family: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Segoe UI', sans-serif !important;
+    color: var(--brume-ink);
+    background-color: var(--brume-bg-bottom) !important;
+}
+
+/* ═══ 夜空背景（#brume-sky，index.js 生成）═════════════════════
+   z-index:-1＝墊在所有內容之下、蓋過 ST 自己的背景圖層。
+   關閉「Brume 夜空」開關即隱藏、還原 ST 背景圖。 */
+:root[data-brume-sky='off'] #brume-sky { display: none; }
+
+#brume-sky {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 底：兩段式漸層（天頂近黑 → 底部墨藍） */
+#brume-sky .brume-grad {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--brume-bg-top), var(--brume-bg-bottom));
+}
+
+/* 星空：兩層平鋪星點、不同週期閃爍（極光／水族館顯示；夜霧收掉） */
+#brume-sky .brume-stars,
+#brume-sky .brume-stars::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat;
+    background-size: 460px 460px;
+}
+#brume-sky .brume-stars {
+    background-image:
+        radial-gradient(1.4px 1.4px at 31px 74px, rgba(255, 255, 255, 0.9), transparent 60%),
+        radial-gradient(1px 1px at 148px 26px, rgba(255, 255, 255, 0.7), transparent 60%),
+        radial-gradient(1.8px 1.8px at 236px 148px, rgba(210, 240, 255, 0.85), transparent 60%),
+        radial-gradient(1px 1px at 342px 62px, rgba(255, 255, 255, 0.6), transparent 60%),
+        radial-gradient(1.2px 1.2px at 405px 213px, rgba(255, 255, 255, 0.75), transparent 60%),
+        radial-gradient(1px 1px at 84px 302px, rgba(210, 240, 255, 0.6), transparent 60%),
+        radial-gradient(1.5px 1.5px at 187px 388px, rgba(255, 255, 255, 0.8), transparent 60%),
+        radial-gradient(1px 1px at 300px 330px, rgba(255, 255, 255, 0.55), transparent 60%);
+    animation: brume-twinkle 5.5s ease-in-out infinite alternate;
+}
+#brume-sky .brume-stars::after {
+    background-image:
+        radial-gradient(1.2px 1.2px at 66px 180px, rgba(255, 255, 255, 0.7), transparent 60%),
+        radial-gradient(1px 1px at 210px 96px, rgba(210, 240, 255, 0.6), transparent 60%),
+        radial-gradient(1.6px 1.6px at 118px 415px, rgba(255, 255, 255, 0.8), transparent 60%),
+        radial-gradient(1px 1px at 388px 140px, rgba(255, 255, 255, 0.55), transparent 60%),
+        radial-gradient(1.3px 1.3px at 262px 262px, rgba(210, 240, 255, 0.7), transparent 60%),
+        radial-gradient(1px 1px at 430px 356px, rgba(255, 255, 255, 0.6), transparent 60%);
+    animation: brume-twinkle 8s ease-in-out infinite alternate-reverse;
+}
+@keyframes brume-twinkle {
+    from { opacity: 0.45; }
+    to { opacity: 1; }
+}
+:root[data-brume-theme='night'] #brume-sky .brume-stars { display: none; }
+
+/* 霧氣漂流：只用 transform 動畫（GPU 合成），柔霧感靠 radial-gradient
+   的透明衰減。極光主題下由極光簾幕取代（比照 Brume 本體）。 */
+#brume-sky .brume-fog { position: absolute; inset: -20%; }
+#brume-sky .brume-fog::before,
+#brume-sky .brume-fog::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    will-change: transform;
+}
+#brume-sky .brume-fog::before {
+    background:
+        radial-gradient(45% 35% at 25% 30%, var(--brume-fog-1), transparent 70%),
+        radial-gradient(50% 40% at 75% 65%, var(--brume-fog-2), transparent 70%);
+    animation: brume-fog-a 11s ease-in-out infinite alternate;
+}
+#brume-sky .brume-fog::after {
+    background:
+        radial-gradient(55% 45% at 60% 20%, var(--brume-fog-2), transparent 70%),
+        radial-gradient(40% 35% at 30% 80%, var(--brume-fog-1), transparent 70%);
+    animation: brume-fog-b 15s ease-in-out infinite alternate;
+}
+@keyframes brume-fog-a {
+    from { transform: translate3d(-6%, -3%, 0) scale(1); }
+    to { transform: translate3d(7%, 4%, 0) scale(1.15); }
+}
+@keyframes brume-fog-b {
+    from { transform: translate3d(5%, 3%, 0) scale(1.1); }
+    to { transform: translate3d(-7%, -4%, 0) scale(1); }
+}
+:root[data-brume-theme='aurora'] #brume-sky .brume-fog,
+:root[data-brume-theme]:not([data-brume-theme='aquarium']):not([data-brume-theme='night']) #brume-sky .brume-fog { display: none; }
+
+/* 極光簾幕：三層多色色帶 mix-blend-mode:screen 交織發光；
+   hue-rotate 用 steps(120) 降 GPU 重算頻率（Brume B67 熱預算做法）。
+   只掛天空上半（mask），下半留給夜與星。只在極光主題顯示。 */
+#brume-sky .brume-aurora { display: none; }
+:root[data-brume-theme='aurora'] #brume-sky .brume-aurora,
+:root[data-brume-theme]:not([data-brume-theme='aquarium']):not([data-brume-theme='night']) #brume-sky .brume-aurora {
+    display: block;
+    position: absolute;
+    inset: -28% -30%;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 38%, rgba(0, 0, 0, 0.35) 55%, transparent 70%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 38%, rgba(0, 0, 0, 0.35) 55%, transparent 70%);
+}
+#brume-sky .brume-aurora i {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background-repeat: no-repeat;
+    mix-blend-mode: screen;
+    will-change: transform, opacity, filter;
+}
+#brume-sky .brume-aurora i:nth-child(1) {
+    background: linear-gradient(112deg,
+        transparent 18%,
+        rgba(56, 226, 160, 0.5) 32%,
+        rgba(56, 196, 255, 0.44) 44%,
+        rgba(146, 106, 255, 0.4) 56%,
+        rgba(240, 92, 170, 0.22) 66%,
+        transparent 78%);
+    animation: brume-aur-a 12s ease-in-out infinite alternate, brume-hue 36s steps(120) infinite;
+}
+#brume-sky .brume-aurora i:nth-child(2) {
+    background: linear-gradient(76deg,
+        transparent 16%,
+        rgba(255, 96, 150, 0.22) 30%,
+        rgba(150, 120, 255, 0.34) 43%,
+        rgba(60, 230, 190, 0.36) 57%,
+        transparent 72%);
+    animation: brume-aur-b 17s ease-in-out infinite alternate, brume-hue 52s steps(120) infinite reverse;
+}
+#brume-sky .brume-aurora i:nth-child(3) {
+    background:
+        radial-gradient(72% 34% at 50% 6%, rgba(88, 240, 190, 0.46), transparent 66%),
+        radial-gradient(46% 24% at 18% 28%, rgba(120, 140, 255, 0.36), transparent 70%),
+        radial-gradient(40% 20% at 84% 20%, rgba(255, 110, 160, 0.24), transparent 70%);
+    animation: brume-aur-c 23s ease-in-out infinite alternate, brume-hue 44s steps(120) infinite;
+}
+@keyframes brume-aur-a {
+    0% { transform: translate3d(-18%, -6%, 0) skewY(-7deg) scaleY(1); opacity: 0.9; }
+    45% { transform: translate3d(0%, 4%, 0) skewY(5deg) scaleY(1.4); opacity: 1; }
+    100% { transform: translate3d(18%, -5%, 0) skewY(-4deg) scaleY(1.08); opacity: 0.85; }
+}
+@keyframes brume-aur-b {
+    0% { transform: translate3d(14%, 5%, 0) skewY(6deg) scaleY(1.25); opacity: 0.8; }
+    55% { transform: translate3d(-4%, -3%, 0) skewY(-5deg) scaleY(1); opacity: 1; }
+    100% { transform: translate3d(-16%, 6%, 0) skewY(4deg) scaleY(1.35); opacity: 0.75; }
+}
+@keyframes brume-aur-c {
+    0% { transform: translate3d(-6%, 0, 0) scaleY(1) scaleX(1); opacity: 0.85; }
+    50% { transform: translate3d(5%, 3%, 0) scaleY(1.3) scaleX(1.12); opacity: 1; }
+    100% { transform: translate3d(-4%, -2%, 0) scaleY(1.05) scaleX(0.96); opacity: 0.8; }
+}
+@keyframes brume-hue {
+    from { filter: hue-rotate(0deg); }
+    to { filter: hue-rotate(360deg); }
+}
+
+/* 水族館：上緣天頂光柱＋緩緩上升的氣泡（簡化版場景） */
+#brume-sky .brume-aqua { display: none; }
+:root[data-brume-theme='aquarium'] #brume-sky .brume-aqua {
+    display: block;
+    position: absolute;
+    inset: 0;
+}
+:root[data-brume-theme='aquarium'] #brume-sky .brume-aqua::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(70% 32% at 50% -6%, rgba(120, 220, 235, 0.22), transparent 70%),
+        linear-gradient(168deg, transparent 30%, rgba(85, 207, 224, 0.05) 46%, transparent 60%),
+        linear-gradient(196deg, transparent 34%, rgba(85, 207, 224, 0.04) 52%, transparent 66%);
+}
+#brume-sky .brume-aqua i {
+    position: absolute;
+    bottom: -20px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(220, 250, 255, 0.5), rgba(140, 220, 235, 0.14) 70%);
+    animation: brume-rise 14s linear infinite;
+    will-change: transform, opacity;
+}
+#brume-sky .brume-aqua i:nth-child(1) { left: 12%; animation-duration: 15s; }
+#brume-sky .brume-aqua i:nth-child(2) { left: 27%; width: 4px; height: 4px; animation-duration: 11s; animation-delay: -4s; }
+#brume-sky .brume-aqua i:nth-child(3) { left: 44%; animation-duration: 17s; animation-delay: -9s; }
+#brume-sky .brume-aqua i:nth-child(4) { left: 58%; width: 5px; height: 5px; animation-duration: 12s; animation-delay: -2s; }
+#brume-sky .brume-aqua i:nth-child(5) { left: 73%; animation-duration: 16s; animation-delay: -12s; }
+#brume-sky .brume-aqua i:nth-child(6) { left: 88%; width: 4px; height: 4px; animation-duration: 10s; animation-delay: -6s; }
+@keyframes brume-rise {
+    0% { transform: translate3d(0, 0, 0); opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 0.9; }
+    100% { transform: translate3d(14px, -108vh, 0); opacity: 0; }
+}
+
+/* 動態背景關閉／系統減少動態偏好：全部靜止（星霧留著、不再動） */
+:root[data-brume-motion='off'] #brume-sky *,
+:root[data-brume-motion='off'] #brume-sky *::before,
+:root[data-brume-motion='off'] #brume-sky *::after {
+    animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    #brume-sky *, #brume-sky *::before, #brume-sky *::after { animation: none !important; }
+}
+
+/* ═══ 頂部導航列 ═════════════════════════════════════════════ */
+:root[data-brume-theme] #top-bar {
+    background: var(--brume-nav) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border-bottom: 1px solid var(--brume-border);
+    box-shadow: none !important;
+}
+:root[data-brume-theme] #top-bar .drawer-icon {
+    color: var(--brume-ink-2);
+    transition: color 0.2s;
+}
+:root[data-brume-theme] #top-bar .drawer-icon:hover,
+:root[data-brume-theme] #top-bar .drawer-icon.openIcon {
+    color: var(--brume-accent);
+}
+
+/* 抽屜面板（設定、角色卡、世界書…） */
+:root[data-brume-theme] .drawer-content {
+    background: var(--brume-panel) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 0 0 18px 18px;
+    box-shadow: var(--brume-shadow);
+    color: var(--brume-ink);
+}
+:root[data-brume-theme] #left-nav-panel,
+:root[data-brume-theme] #right-nav-panel,
+:root[data-brume-theme] .fillLeft,
+:root[data-brume-theme] .fillRight {
+    background: var(--brume-panel) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    box-shadow: var(--brume-shadow);
+}
+
+/* ═══ 通用控件 ═══════════════════════════════════════════════ */
+:root[data-brume-theme] .menu_button {
+    background: var(--brume-surface-2) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink) !important;
+    transition: border-color 0.2s, background 0.2s;
+}
+:root[data-brume-theme] .menu_button:hover {
+    background: var(--brume-accent-pale) !important;
+    border-color: var(--brume-accent) !important;
+    color: var(--brume-accent-deep) !important;
+}
+:root[data-brume-theme] .text_pole,
+:root[data-brume-theme] select,
+:root[data-brume-theme] textarea:not(#send_textarea) {
+    background: var(--brume-surface) !important;
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 12px !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] .text_pole:focus,
+:root[data-brume-theme] textarea:focus {
+    border-color: var(--brume-accent) !important;
+}
+:root[data-brume-theme] input[type='checkbox'] {
+    accent-color: var(--brume-accent);
+}
+:root[data-brume-theme] input[type='range'] {
+    accent-color: var(--brume-accent);
+}
+
+/* 彈窗（dialog.popup） */
+:root[data-brume-theme] .popup {
+    background: var(--brume-panel) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--brume-shadow) !important;
+    color: var(--brume-ink);
+}
+:root[data-brume-theme] .popup::backdrop {
+    background: rgba(5, 7, 12, 0.55);
+}
+
+/* 提示訊息（toastr） */
+:root[data-brume-theme] #toast-container > div {
+    background-color: var(--brume-surface-2) !important;
+    color: var(--brume-ink) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--brume-shadow) !important;
+    opacity: 0.96;
+}
+
+/* 捲軸：細、低調 */
+:root[data-brume-theme] ::-webkit-scrollbar { width: 6px; height: 6px; }
+:root[data-brume-theme] ::-webkit-scrollbar-track { background: transparent; }
+:root[data-brume-theme] ::-webkit-scrollbar-thumb {
+    background: var(--brume-border-2);
+    border-radius: 999px;
+}
+:root[data-brume-theme] ::-webkit-scrollbar-thumb:hover { background: var(--brume-ink-3); }
+
+/* ═══ 聊天視窗 ═══════════════════════════════════════════════ */
+:root[data-brume-theme] #sheld,
+:root[data-brume-theme] #chat {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* 輸入列：圓角玻璃膠囊（Brume 聊天室輸入列造型） */
+:root[data-brume-theme] #form_sheld { background: transparent !important; }
+:root[data-brume-theme] #send_form {
+    background: var(--brume-surface-glass) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 22px !important;
+    margin: 0 6px 6px;
+    box-shadow: var(--brume-shadow);
+}
+:root[data-brume-theme] #send_textarea {
+    background: transparent !important;
+    border: none !important;
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-theme] #send_textarea::placeholder { color: var(--brume-ink-3); }
+:root[data-brume-theme] #send_but,
+:root[data-brume-theme] #mes_impersonate,
+:root[data-brume-theme] #mes_continue {
+    color: var(--brume-accent) !important;
+}
+:root[data-brume-theme] #options_button,
+:root[data-brume-theme] #extensionsMenuButton {
+    color: var(--brume-ink-2) !important;
+}
+:root[data-brume-theme] #options .options-content,
+:root[data-brume-theme] #extensionsMenu {
+    background: var(--brume-panel) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--brume-shadow) !important;
+}
+
+/* 訊息通用（非泡泡模式也先柔化底色與文字） */
+:root[data-brume-theme] #chat .mes {
+    background: transparent !important;
+}
+:root[data-brume-theme] .mes .name_text { color: var(--brume-ink-2); font-size: 12.5px; }
+:root[data-brume-theme] .mes .timestamp { color: var(--brume-ink-3); font-size: 10px; }
+:root[data-brume-theme] .mes_buttons .mes_button,
+:root[data-brume-theme] .extraMesButtons > div {
+    color: var(--brume-ink-3);
+}
+:root[data-brume-theme] .mes_buttons .mes_button:hover { color: var(--brume-accent); }
+:root[data-brume-theme] .swipe_left,
+:root[data-brume-theme] .swipe_right { color: var(--brume-ink-3) !important; }
+:root[data-brume-theme] .swipes-counter { color: var(--brume-ink-3); }
+
+/* ═══ LINE 式泡泡模式 ════════════════════════════════════════
+   角色靠左（surface 玻璃泡泡）、玩家靠右（accent 玻璃泡泡）、
+   圓頭貼、82% 最大寬——Brume 聊天室的招牌版面。 */
+:root[data-brume-bubbles='on'] #chat .mes {
+    display: flex !important;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 5px 12px !important;
+    border: none !important;
+    margin: 0 !important;
+}
+:root[data-brume-bubbles='on'] #chat .mes .mesAvatarWrapper {
+    align-self: flex-end;
+    padding: 0;
+}
+:root[data-brume-bubbles='on'] #chat .mes .avatar,
+:root[data-brume-bubbles='on'] #chat .mes .avatar img {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+}
+:root[data-brume-bubbles='on'] #chat .mes .mes_block {
+    max-width: min(82%, 680px);
+    padding: 8px 13px 9px !important;
+    margin: 0 !important;
+    background: var(--brume-surface-glass);
+    border: 1px solid var(--brume-border);
+    border-radius: 18px;
+    border-bottom-left-radius: 6px;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    box-shadow: var(--brume-shadow);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] {
+    flex-direction: row-reverse;
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block {
+    background: var(--brume-accent-glass);
+    border-color: transparent;
+    border-radius: 18px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 6px;
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text { color: #fff; }
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text q { color: rgba(255, 255, 255, 0.92); }
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text em,
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_text i {
+    color: rgba(24, 32, 42, 0.72);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .ch_name {
+    flex-direction: row-reverse;
+}
+/* 系統訊息維持置中窄條，不當泡泡 */
+:root[data-brume-bubbles='on'] #chat .mes[is_system='true'] {
+    flex-direction: column;
+    align-items: center;
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_system='true'] .mes_block {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+/* 訊息內文行高比照 Brume 泡泡 */
+:root[data-brume-bubbles='on'] #chat .mes_text {
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+/* ═══ 手機窄版：把聊天欄收成一支置中的「小手機」════════════════ */
+:root[data-brume-narrow='on'] #sheld {
+    width: min(100vw, 500px) !important;
+    max-width: 500px !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-inline: auto !important;
+}
+
+/* ═══ 歡迎面板／最近的聊天（ST 1.13+ welcomePanel）═══════════════
+   對照 public/scripts/templates/welcomePanel.html 的實際結構。 */
+:root[data-brume-theme] .welcomePanel {
+    background: var(--brume-panel) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--brume-shadow);
+}
+:root[data-brume-theme] .welcomeHeaderVersionDisplay { color: var(--brume-ink-3); }
+:root[data-brume-theme] .recentChatsTitle { color: var(--brume-ink); }
+:root[data-brume-theme] .welcomeShortcutsSeparator { color: var(--brume-ink-3); }
+:root[data-brume-theme] .recentChat {
+    background: var(--brume-surface-glass) !important;
+    border: 1px solid var(--brume-border) !important;
+    border-radius: 16px !important;
+    transition: border-color 0.2s;
+}
+:root[data-brume-theme] .recentChat:hover { border-color: var(--brume-accent) !important; }
+:root[data-brume-theme] .recentChat .avatar,
+:root[data-brume-theme] .recentChat .avatar img {
+    border-radius: 50% !important;
+}
+:root[data-brume-theme] .recentChat .characterName { color: var(--brume-ink); }
+:root[data-brume-theme] .recentChat .chatName { color: var(--brume-ink-2); }
+:root[data-brume-theme] .recentChat .chatDate,
+:root[data-brume-theme] .recentChat .chatStats,
+:root[data-brume-theme] .recentChat .fileSize { color: var(--brume-ink-3); }
+:root[data-brume-theme] .recentChat .chatMessage { color: var(--brume-ink-2); }
+:root[data-brume-theme] .recentChat .chatActions .menu_button {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--brume-ink-3) !important;
+}
+:root[data-brume-theme] .recentChat .chatActions .menu_button:hover { color: var(--brume-accent) !important; }
+:root[data-brume-theme] .recentChatPinned { color: var(--brume-accent); }
+
+/* ═══ 世界書（World Info）——手機相容整修 ═══════════════════════
+   對照 index.html #entry_edit_template 的實際結構：
+   .world_entry > .world_entry_form > .inline-drawer >
+     .inline-drawer-header（標題列＋ .WIEnteryHeaderControls 四小欄）
+   病根：小欄位（插入位置/深度/順序/觸發%）在窄螢幕擠成一團、
+   輸入框寬窄不一。改法：條目變玻璃卡片；窄螢幕時四小欄改成
+   2×2 網格、label 移到輸入框上方、輸入框統一撐滿。 */
+:root[data-brume-theme] .world_entry {
+    background: var(--brume-surface-glass) !important;
+    border: 1px solid var(--brume-border) !important;
+    border-radius: 16px !important;
+    margin: 0 0 10px !important;
+    padding: 8px 10px !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+}
+:root[data-brume-theme] .world_entry .inline-drawer-header {
+    background: transparent !important;
+    border: none !important;
+}
+:root[data-brume-theme] .world_entry .drag-handle { color: var(--brume-ink-3); }
+:root[data-brume-theme] .world_entry .killSwitch { color: var(--brume-accent); }
+:root[data-brume-theme] .world_entry .killSwitch.fa-toggle-off { color: var(--brume-ink-3); }
+:root[data-brume-theme] .world_entry textarea[name='comment'] {
+    font-size: 14.5px !important;
+    background: transparent !important;
+    border-color: transparent !important;
+}
+:root[data-brume-theme] .world_entry textarea[name='comment']:focus {
+    background: var(--brume-surface) !important;
+    border-color: var(--brume-accent) !important;
+}
+:root[data-brume-theme] .WIEntryHeaderTitleMobile {
+    font-size: 11px !important;
+    letter-spacing: 0.5px;
+    color: var(--brume-ink-3) !important;
+}
+/* 窄螢幕（手機直向）：四個小欄位改 2×2 網格、label 在上、輸入框滿寬 */
+@media (max-width: 1000px) {
+    :root[data-brume-theme] .WIEnteryHeaderControls {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        width: 100%;
+        margin-top: 6px;
+    }
+    :root[data-brume-theme] .WIEnteryHeaderControls .world_entry_form_control {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 3px;
+        margin: 0 !important;
+    }
+    :root[data-brume-theme] .WIEnteryHeaderControls .text_pole {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        min-height: 34px;
+    }
+}
+/* 世界書全域設定區與清單容器：卡片間距、去掉硬邊 */
+:root[data-brume-theme] #world_popup_entries_list { padding: 4px 2px; }
+:root[data-brume-theme] #WorldInfo .text_pole { min-height: 32px; }
+
+/* ═══ 卡片自訂版面相容（MVU 狀態欄／regex 渲染的 HTML 面板）═════
+   原則：擴充在 .mes_text 內文一律不用 !important——卡片自帶的
+   inline style 與 <style> 永遠優先，顏色字體照卡片原設計呈現。
+   泡泡模式的 82% 最大寬度會擠壓寬版狀態欄：偵測到訊息含區塊級
+   自訂版面（div/table/details/iframe/img）就自動把那一則放寬滿版，
+   其餘純文字訊息維持泡泡。 */
+:root[data-brume-bubbles='on'] #chat .mes .mes_block:has(.mes_text > div),
+:root[data-brume-bubbles='on'] #chat .mes .mes_block:has(.mes_text table),
+:root[data-brume-bubbles='on'] #chat .mes .mes_block:has(.mes_text details),
+:root[data-brume-bubbles='on'] #chat .mes .mes_block:has(.mes_text iframe),
+:root[data-brume-bubbles='on'] #chat .mes .mes_block:has(.mes_text img) {
+    max-width: 100%;
+    flex: 1;
+}
+/* 自訂面板常自帶深色底：讓位的那一則泡泡底改全透明色墊，避免疊色 */
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div),
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) {
+    background: var(--brume-surface-glass);
+}
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text > div) .mes_text,
+:root[data-brume-bubbles='on'] #chat .mes[is_user='true'] .mes_block:has(.mes_text table) .mes_text {
+    color: var(--brume-ink);
+}

@@ -335,9 +335,8 @@
 :root[data-brume-motion='off'] #brume-sky *::after {
     animation: none !important;
 }
-@media (prefers-reduced-motion: reduce) {
-    #brume-sky *, #brume-sky *::before, #brume-sky *::after { animation: none !important; }
-}
+/* 背景動畫只聽擴充自己的「背景動畫」開關——不跟 OS 的「減少動態效果」
+   連動（iOS 很多人開著它，會造成「電腦有動畫、手機沒有」的落差）。 */
 
 /* ═══ 頂部導航列 ═════════════════════════════════════════════ */
 :root[data-brume-theme] #top-bar {
@@ -842,3 +841,40 @@
 
 /* 名字與時間戳的呼吸間距 */
 :root[data-brume-theme] .mes .name_text { margin-right: 6px; }
+
+/* ═══ 輸入列排版整隊（v1.0.9）════════════════════════════════
+   強制單行：漢堡／魔杖｜輸入框｜（停止）傳送。
+   註：未連線 API 時 ST 會自行隱藏傳送鍵（連上即出現），非擴充行為。 */
+:root[data-brume-theme] #send_form {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+:root[data-brume-theme] #nonQRFormItems {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-end;
+    width: 100%;
+    gap: 2px;
+}
+:root[data-brume-theme] #leftSendForm,
+:root[data-brume-theme] #rightSendForm {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
+    height: auto !important;
+    align-items: center;
+    flex: none;
+    gap: 2px;
+}
+:root[data-brume-theme] #leftSendForm > div,
+:root[data-brume-theme] #rightSendForm > div,
+:root[data-brume-theme] #extensionsMenuButton {
+    font-size: 18px !important;
+    padding: 8px 9px;
+    color: var(--brume-ink-2);
+}
+:root[data-brume-theme] #send_but { color: var(--brume-accent) !important; }
+:root[data-brume-theme] #mes_stop { color: #D69C7E !important; }
+:root[data-brume-theme] #send_textarea { min-width: 0; }

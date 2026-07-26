@@ -741,6 +741,12 @@
         margin-inline: 0 !important;
         transform: none !important;
     }
+    /* 抽屜自身禁止橫向捲動（clip 不產生捲動容器）——內部就算殘留
+       一兩px 過寬的元素，也不准把整個面板變成可以左右拖的捲軸 */
+    :root[data-brume-theme] .drawer-content,
+    :root[data-brume-theme] #WorldInfo {
+        overflow-x: clip !important;
+    }
     /* 面板內層（一般流內元素）：auto 寬跟著父層內容區走，
        不能寫 100dvw——會疊上父層 padding 又凸出去 */
     :root[data-brume-theme] #wi-holder,

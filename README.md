@@ -32,6 +32,16 @@ https://github.com/lubiyu0307-prog/st-brume
 或手動安裝：把本 repo 整個資料夾放到
 `SillyTavern/data/<你的使用者>/extensions/st-brume/`，重新整理頁面。
 
+## 搭配的介面主題檔（themes/）
+
+`themes/` 內附三個官方格式的介面主題檔（Brume 極光／水族館／夜霧）。
+到「使用者設定 → 介面主題」按匯入、選擇對應主題，可讓 SillyTavern 底層的
+主題顏色（引用文字、斜體、邊框等）也原生對齊 Brume 配色——與本擴充搭配最穩，
+單獨使用也可以（只有顏色，沒有背景動畫與泡泡版面）。
+
+> 注意：與其他「主題類擴充」（如 Moonlit Echoes Theme）同時啟用時，兩邊的
+> 樣式會互相覆蓋、外觀不可預期。建議擇一使用。
+
 ## 相容性
 
 以 SillyTavern 1.12+ 為目標（設定經 `SillyTavern.getContext()` 儲存；

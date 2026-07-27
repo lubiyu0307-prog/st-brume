@@ -1,16 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════
    Forêt-Noire — 黑森林巧克力主題 for SillyTavern
    ---------------------------------------------------------------
-   甜點感的深色主題：可可盤面、蛋糕體層次、鮮奶油細線、酸櫻桃點綴。
+   甜點感的深色主題：可可盤面、櫻桃點綴、奶油細節。
+   v3.0 起：訊息改為「貼齊文字的泡泡」——泡泡半透明，
+   背景圖從縫隙透出，像真的在傳訊息。
    原則：
      1. 零模糊——不使用 backdrop-filter，使用者的背景圖保持清晰。
-     2. 層次靠實色與細線，不靠陰影堆疊。
-     3. 主色（櫻桃）只用於「作用中／送出／確認」，不濫用。
+     2. 泡泡貼齊文字（fit-content），角色靠左、玩家靠右。
+     3. 主色（櫻桃）只用於「玩家泡泡／作用中／送出／確認」。
      4. 手機優先；所有版面手術鎖在 ≤1000px，桌面保留原生排版。
    鐵律（踩過的坑，勿再犯）：
      · #top-settings-holder 永遠不可 overflow:hidden（會裁掉所有面板）
      · 固定定位圖層要明確給寬高（ST 在 <html> 掛 transform）
      · 輸入列不可用 width:100% + margin（會被推出右緣）
+     · .extension_block 的子元素不可用「> div」一律縮成方鈕——
+       名稱常包在無 class 的 div 裡，會被壓成 34px 而截字
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── 字體：粉圓體（jf open 粉圓，OFL）＋系統圓體退路 ────────── */
@@ -48,6 +52,9 @@
     --fn-cherry-deep: #8E2B3D; /* 深櫻桃：按下 */
     --fn-cherry-jam: rgba(200, 70, 90, 0.16); /* 果醬：淡底 */
     --fn-on-cherry: #FFF3F5;   /* 壓在櫻桃上的字 */
+    /* 泡泡（半透明，讓背景圖透出） */
+    --fn-bubble: rgba(24, 14, 11, 0.80);        /* 角色泡泡：可可 */
+    --fn-bubble-user: rgba(142, 43, 61, 0.68);  /* 玩家泡泡：櫻桃 */
     /* 開心果（次要點綴：成功／啟用狀態） */
     --fn-pistachio: #8FAE72;
     /* 線條 */
@@ -153,22 +160,22 @@
     border-bottom: 1px solid var(--fn-line);
     box-shadow: 0 2px 0 rgba(10, 5, 3, .35);
 }
-/* 頭部下緣的「鮮奶油淋邊」——甜點感的簽名細節 */
+/* 頭部下緣的「鮮奶油淋邊」——連續奶油弧；工具列展開時收起，
+   免得弧點壓在圖示列上看起來像破圖 */
 :root[data-foret][data-foret-immersive='on'] #foret-header::after {
     content: '';
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -3px;
-    height: 3px;
-    background:
-        radial-gradient(6px 6px at 8px 0, var(--fn-cream) 60%, transparent 62%),
-        radial-gradient(6px 6px at 32px 0, var(--fn-cream) 60%, transparent 62%),
-        radial-gradient(6px 6px at 56px 0, var(--fn-cream) 60%, transparent 62%);
+    bottom: -4px;
+    height: 4px;
+    background: radial-gradient(9px 8px at 9px -2px, var(--fn-cream) 62%, transparent 64%);
     background-repeat: repeat-x;
-    background-size: 24px 6px;
-    opacity: .5;
+    background-size: 26px 8px;
+    opacity: .38;
+    pointer-events: none;
 }
+:root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #foret-header::after { display: none; }
 #foret-header .fh-avatar {
     width: 40px;
     height: 40px;
@@ -230,6 +237,15 @@
     overflow: visible !important;
     background: transparent !important;
 }
+/* 展開的圖示列給實色可可底——先前透明時背景圖亮部會透上來，
+   圖示變成一條金黃色雜訊 */
+:root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #top-settings-holder {
+    background: var(--fn-cake) !important;
+    border-bottom: 1px solid var(--fn-line);
+    box-shadow: 0 8px 20px rgba(10, 5, 3, .35);
+    padding: 2px 6px;
+    justify-content: space-evenly;
+}
 :root[data-foret]:not([data-foret-immersive='on']) #top-bar {
     background: var(--fn-cake) !important;
     border-bottom: 1px solid var(--fn-line);
@@ -258,7 +274,10 @@
     top: calc(62px + var(--topBarBlockSize)) !important;
 }
 
-/* ═══ 聊天：一層層的蛋糕 ═══════════════════════════════════ */
+/* ═══ 聊天：訊息泡泡 ═══════════════════════════════════════
+   泡泡貼齊文字（fit-content）、半透明讓背景圖透出。
+   角色：靠左，頭貼＋名字＋可可泡泡。
+   玩家：靠右，櫻桃泡泡；不顯示自己的名字（傳訊軟體慣例）。 */
 :root[data-foret] #sheld,
 :root[data-foret] #chat {
     background: transparent !important;
@@ -272,85 +291,149 @@
     right: 0 !important;
     margin: 0 !important;
 }
-:root[data-foret] #chat { padding-inline: max(0px, calc((100% - 860px) / 2)); }
+:root[data-foret] #chat {
+    padding-inline: max(0px, calc((100% - 860px) / 2));
+    padding-top: 8px;
+    padding-bottom: 6px;
+}
 
-/* 訊息＝蛋糕層：整寬、無氣泡切割，層與層之間一條奶油細線 */
 :root[data-foret] #chat .mes {
     display: flex !important;
+    flex-direction: row;
     align-items: flex-start;
-    gap: 11px;
-    padding: 15px 18px !important;
+    gap: 8px;
+    padding: 5px 10px !important;
     margin: 0 !important;
     border: none !important;
-    background: rgba(51, 33, 28, 0.82);
-    border-bottom: 1px solid var(--fn-line);
+    background: transparent !important;
+    box-shadow: none !important;
+    max-width: 100%;
 }
-:root[data-foret] #chat .mes[is_user='true'] {
-    background: rgba(67, 45, 38, 0.82);
-    box-shadow: inset 3px 0 0 var(--fn-cherry);
-}
-/* 使用者自訂背景圖時，蛋糕層轉半透明讓照片透出（仍不模糊） */
-:root[data-foret][data-foret-bg='on'] #chat .mes { background: rgba(36, 23, 19, 0.7); }
-:root[data-foret][data-foret-bg='on'] #chat .mes[is_user='true'] { background: rgba(67, 45, 38, 0.72); }
+:root[data-foret] #chat .mes[is_user='true'] { flex-direction: row-reverse !important; }
 
-:root[data-foret] #chat .mes .mesAvatarWrapper { flex: none; padding: 0; }
+:root[data-foret] #chat .mes .mesAvatarWrapper {
+    flex: none;
+    padding: 0;
+    margin: 2px 0 0;
+    float: none !important;
+}
 :root[data-foret] #chat .mes .avatar,
 :root[data-foret] #chat .mes .avatar img {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 50% !important;
     border: 2px solid var(--fn-line-cream) !important;
 }
+
+/* 泡泡本體：貼齊文字，靠頭貼那一角收小 */
 :root[data-foret] #chat .mes .mes_block {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
+    flex: 0 1 auto !important;
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: min(86%, 660px) !important;
+    background: var(--fn-bubble) !important;
+    border: 1px solid rgba(246, 239, 231, 0.07) !important;
+    border-radius: 4px 16px 16px 16px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .25) !important;
+    padding: 8px 13px 10px !important;
     margin: 0 !important;
-    max-width: 100% !important;
-    flex: 1;
-    min-width: 0;
 }
+:root[data-foret] #chat .mes[is_user='true'] .mes_block {
+    background: var(--fn-bubble-user) !important;
+    border-color: rgba(224, 120, 138, 0.18) !important;
+    border-radius: 16px 4px 16px 16px !important;
+}
+:root[data-foret] #chat .mes .mes_block > * { min-width: 0; }
+/* 編輯訊息時泡泡撐滿整寬，編輯框才夠用 */
+:root[data-foret] #chat .mes:has(.edit_textarea) .mes_block {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* 名字列：角色顯示、玩家收起（自己的訊息不用標名字） */
+:root[data-foret] #chat .mes .ch_name {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-height: 0;
+    margin-bottom: 2px;
+}
+:root[data-foret] #chat .mes[is_user='true'] .ch_name { flex-direction: row-reverse; }
 :root[data-foret] #chat .name_text {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--fn-cherry-soft);
     letter-spacing: .4px;
+    margin-right: 6px;
 }
-:root[data-foret] #chat .mes[is_user='true'] .name_text { color: var(--fn-caramel); }
+:root[data-foret] #chat .mes[is_user='true'] .name_text { display: none; }
 :root[data-foret] #chat .timestamp { font-size: 10px; color: var(--fn-cocoa); }
+:root[data-foret] #chat .mes[is_user='true'] .timestamp { color: rgba(255, 243, 245, .55); }
+
 :root[data-foret] #chat .mes_text {
     font-size: 15px;
-    line-height: 1.72;
+    line-height: 1.7;
     color: var(--fn-cream);
+    text-align: left !important;
+    padding-top: 2px;
 }
+:root[data-foret] #chat .mes[is_user='true'] .mes_text { color: var(--fn-on-cherry); }
 :root[data-foret] #chat .mes_text q { color: var(--fn-cherry-soft); }
+:root[data-foret] #chat .mes[is_user='true'] .mes_text q { color: #FFD3DB; }
 :root[data-foret] #chat .mes_text em,
 :root[data-foret] #chat .mes_text i { color: var(--fn-caramel); font-style: italic; }
+:root[data-foret] #chat .mes_text a { color: var(--fn-cherry-soft); }
 
-/* 訊息動作鈕：安靜，滑過才浮現 */
+/* 訊息動作鈕：滑鼠裝置滑過才浮現；觸控裝置沒有 hover，
+   常駐半透明，點得到也不搶戲 */
 :root[data-foret] #chat .mes .mes_buttons { opacity: 0; transition: opacity .18s; }
 :root[data-foret] #chat .mes:hover .mes_buttons,
 :root[data-foret] #chat .mes:focus-within .mes_buttons { opacity: 1; }
+@media (hover: none) {
+    :root[data-foret] #chat .mes .mes_buttons { opacity: .5; }
+}
+:root[data-foret] #chat .mes[is_user='true'] .mes_buttons { justify-content: flex-start; }
 :root[data-foret] .mes_button { color: var(--fn-cocoa); }
 :root[data-foret] .mes_button:hover { color: var(--fn-cherry-soft); }
+:root[data-foret] #chat .mes[is_user='true'] .mes_button { color: rgba(255, 243, 245, .6); }
 :root[data-foret] .swipe_left,
-:root[data-foret] .swipe_right { color: var(--fn-cocoa) !important; opacity: .5; }
+:root[data-foret] .swipe_right {
+    color: var(--fn-cocoa) !important;
+    opacity: .5;
+    flex: none;
+    align-self: center;
+}
 :root[data-foret] .mes:hover .swipe_left,
 :root[data-foret] .mes:hover .swipe_right { opacity: 1; }
 :root[data-foret] .swipes-counter { color: var(--fn-cocoa); font-size: 10.5px; }
 
-/* 思考區塊：像蛋糕裡的夾層 */
+/* 思考區塊：泡泡裡的夾層，安靜一點 */
 :root[data-foret] .mes_reasoning_details {
-    background: var(--fn-base);
-    border: 1px solid var(--fn-line);
-    border-left: 3px solid var(--fn-caramel);
-    border-radius: var(--fn-r-s);
-    padding: 7px 12px;
-    margin: 6px 0 9px;
+    background: rgba(0, 0, 0, 0.28);
+    border: none;
+    border-left: 2px solid var(--fn-caramel);
+    border-radius: 6px 10px 10px 6px;
+    padding: 6px 11px;
+    margin: 2px 0 8px;
+    max-width: 100%;
 }
 :root[data-foret] .mes_reasoning_header_title { font-size: 12.5px; color: var(--fn-caramel); }
 :root[data-foret] .mes_reasoning { color: var(--fn-cocoa); font-size: 13px; }
+
+/* 角色卡自訂版面相容（MVU／regex 狀態欄）：
+   不以 !important 侵入訊息內文，卡片自帶樣式永遠優先。 */
+:root[data-foret] #chat .mes_text > div,
+:root[data-foret] #chat .mes_text table { max-width: 100%; }
+
+/* 緊湊行距 */
+:root[data-foret][data-foret-compact='on'] #chat .mes { padding: 3px 8px !important; }
+:root[data-foret][data-foret-compact='on'] #chat .mes_text { line-height: 1.55; }
+
+/* 手機：泡泡吃到接近整寬 */
+@media screen and (max-width: 1000px) {
+    :root[data-foret] #chat { padding-inline: 0 !important; }
+    :root[data-foret] #chat .mes .mes_block { max-width: 88% !important; }
+}
 
 /* ═══ 輸入區：一列到底的托盤 ═════════════════════════════════
    版面固定為：[☰][✨] [ ——— 輸入框 ——— ] [➤]
@@ -359,9 +442,10 @@
    快速回覆列改單排橫向捲動——不再堆成兩三排。 */
 :root[data-foret] #form_sheld {
     position: relative;
-    padding: 0 10px max(env(safe-area-inset-bottom), 8px);
+    padding: 8px 10px max(env(safe-area-inset-bottom), 8px);
     box-sizing: border-box;
-    background: linear-gradient(180deg, transparent, var(--fn-base-2) 46%);
+    background: var(--fn-base-2) !important;
+    border-top: 1px solid var(--fn-line);
 }
 :root[data-foret] #send_form {
     background: transparent !important;
@@ -417,24 +501,24 @@
     background: var(--fn-cake-3) !important;
     color: var(--fn-cream) !important;
 }
-/* 右側次要動作：小一號、統一去色，不再是彩色圓餅 */
+/* 右側次要動作：小一號、統一去色，跟送出鍵拉開層級 */
 :root[data-foret] #rightSendForm > div,
 :root[data-foret] #rightSendForm > div i {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
     padding: 0 !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     flex: none;
     color: var(--fn-cocoa) !important;
     background: transparent !important;
     border: none !important;
     transition: color .18s, background .18s;
 }
-:root[data-foret] #rightSendForm > div { background: var(--fn-cake-2) !important; }
+:root[data-foret] #rightSendForm > div { background: rgba(67, 45, 38, .55) !important; }
 :root[data-foret] #rightSendForm > div i { width: auto; height: auto; background: transparent !important; }
 :root[data-foret] #rightSendForm > div:hover { color: var(--fn-cream) !important; background: var(--fn-cake-3) !important; }
 /* 送出＝那顆櫻桃：明顯大一號、實心 */
@@ -455,7 +539,8 @@
     box-shadow: none;
 }
 :root[data-foret] #rightSendForm > #send_but:hover { background: var(--fn-cherry-deep) !important; }
-/* 輸入框：吃掉所有剩餘空間 */
+/* 輸入框：吃掉所有剩餘空間；文字靠左（ST 預設把提示置中，
+   打字時游標位置很突兀） */
 :root[data-foret] #send_textarea {
     background: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line) !important;
@@ -466,11 +551,22 @@
     line-height: 1.45;
     flex: 1 1 auto !important;
     min-width: 0 !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    position: relative;
+    z-index: 1;
 }
 :root[data-foret] #send_textarea::placeholder { color: var(--fn-cocoa); }
 :root[data-foret] #send_textarea:focus { border-color: var(--fn-cherry) !important; }
+/* 輸入框上緣圓角不被遮：祖先容器不得裁切 */
+:root[data-foret] #form_sheld,
+:root[data-foret] #send_form,
+:root[data-foret] #nonQRFormItems {
+    overflow: visible !important;
+}
 
-/* 快速回覆：單排、小顆、貼緊輸入框
+/* 快速回覆：單排橫向捲動；夠大顆才按得到、看得清
    註：ST 的快捷列是 #qr--bar > .qr--buttons > .qr--button 兩層結構，
    只鎖外層不夠——內層才是真正會換行的那一層。 */
 :root[data-foret] #qr--bar,
@@ -497,23 +593,24 @@
 :root[data-foret] #qr--bar::-webkit-scrollbar,
 :root[data-foret] #qr--bar .qr--buttons::-webkit-scrollbar { display: none; }
 :root[data-foret] .qr--button {
-    background: var(--fn-cake) !important;
-    border: 1px solid var(--fn-line) !important;
+    background: var(--fn-cake-2) !important;
+    border: 1px solid var(--fn-line-2) !important;
     border-radius: 999px !important;
     color: var(--fn-caramel) !important;
-    font-size: 11px !important;
-    line-height: 1.2 !important;
-    padding: 3px 10px !important;
-    min-height: 0 !important;
+    font-size: 12.5px !important;
+    line-height: 1.3 !important;
+    padding: 6px 12px !important;
+    min-height: 30px !important;
     height: auto !important;
     width: auto !important;
     flex: none !important;
     white-space: nowrap;
     box-shadow: none !important;
-    opacity: .85;
+    opacity: 1;
+    display: inline-flex;
+    align-items: center;
 }
 :root[data-foret] .qr--button:hover {
-    opacity: 1;
     background: var(--fn-cherry-jam) !important;
     color: var(--fn-cherry-soft) !important;
     border-color: var(--fn-cherry) !important;
@@ -522,10 +619,35 @@
 /* 窄螢幕：按鈕再小一號，仍維持一排 */
 @media screen and (max-width: 430px) {
     :root[data-foret] #leftSendForm > div { width: 36px; height: 36px; }
-    :root[data-foret] #rightSendForm > div { width: 30px; height: 30px; font-size: 12px !important; }
+    :root[data-foret] #rightSendForm > div { width: 28px; height: 28px; font-size: 11px !important; }
     :root[data-foret] #rightSendForm > #send_but,
     :root[data-foret] #rightSendForm > #send_but i { width: 40px !important; height: 40px !important; }
     :root[data-foret] #send_textarea { padding: 9px 14px !important; }
+}
+
+/* 手機：輸入框獨佔上排、控制列在下排——次要按鈕再多也不擠壓輸入框
+   （桌面空間足夠，維持單排）。 */
+@media screen and (max-width: 700px) {
+    :root[data-foret] #nonQRFormItems {
+        flex-wrap: wrap !important;
+        row-gap: 8px;
+    }
+    :root[data-foret] #send_textarea {
+        flex: 1 0 100% !important;
+        order: -1;
+    }
+    :root[data-foret] #leftSendForm { order: 1; }
+    :root[data-foret] #rightSendForm {
+        order: 2;
+        margin-left: auto;
+        flex-wrap: nowrap !important;
+        max-width: calc(100% - 96px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        justify-content: flex-end;
+    }
+    :root[data-foret] #rightSendForm::-webkit-scrollbar { display: none; }
 }
 
 /* ═══ 面板：一片一片的蛋糕盤 ═══════════════════════════════ */
@@ -600,7 +722,37 @@
 :root[data-foret] .text_pole:focus,
 :root[data-foret] select:focus,
 :root[data-foret] textarea:focus { border-color: var(--fn-cherry) !important; }
-:root[data-foret] input[type='checkbox'] { accent-color: var(--fn-cherry); }
+
+/* 勾選框：自繪櫻桃勾——原生白底黑勾跟甜點盤完全不搭
+   （iOS 對 accent-color 陽奉陰違，直接自繪最穩） */
+:root[data-foret] input[type='checkbox'] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 17px;
+    height: 17px;
+    flex: none;
+    box-sizing: border-box;
+    border: 1.5px solid var(--fn-line-cream);
+    border-radius: 5px;
+    background-color: var(--fn-cake-2);
+    cursor: pointer;
+    vertical-align: middle;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 11px;
+    transition: background-color .15s, border-color .15s;
+}
+:root[data-foret] input[type='checkbox']:checked {
+    background-color: var(--fn-cherry);
+    border-color: var(--fn-cherry);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5 6.5 12 13 4.5' fill='none' stroke='%23FFF3F5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-foret] input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--fn-cherry-jam);
+}
+:root[data-foret] .checkbox_label { gap: 8px; align-items: center; }
+
 :root[data-foret] input[type='range'],
 :root[data-foret] .neo-range-slider { accent-color: var(--fn-cherry); }
 :root[data-foret] .neo-range-input {
@@ -656,6 +808,9 @@
     color: var(--fn-cream);
 }
 :root[data-foret] .popup::backdrop { background: rgba(15, 8, 6, .66); }
+:root[data-foret] .popup h3,
+:root[data-foret] .popup h4 { line-height: 1.35; }
+:root[data-foret] .popup-content { min-width: 0; }
 :root[data-foret] #toast-container > div {
     background-color: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line-2) !important;
@@ -671,6 +826,40 @@
     border-radius: var(--fn-r-m) !important;
     box-shadow: var(--fn-lift) !important;
 }
+
+/* 頭部「更多」選單：浮在頭部下方的托盤，點了看得到反應 */
+:root[data-foret] #options {
+    z-index: 3200 !important;
+}
+:root[data-foret] #options .options-content {
+    position: fixed !important;
+    top: 62px !important;
+    right: 11px !important;
+    left: auto !important;
+    bottom: auto !important;
+    min-width: 210px;
+    max-width: calc(100dvw - 22px);
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    border-radius: var(--fn-r-l) !important;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .55) !important;
+    padding: 8px !important;
+    z-index: 3200 !important;
+}
+:root[data-foret] #options .options-content a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px !important;
+    border-radius: var(--fn-r-s);
+    color: var(--fn-cream) !important;
+    font-size: 14px;
+}
+:root[data-foret] #options .options-content a:hover {
+    background: var(--fn-cherry-jam) !important;
+    color: var(--fn-cherry-soft) !important;
+}
+:root[data-foret] #options .options-content a i { color: var(--fn-caramel); width: 18px; text-align: center; }
 
 /* ═══ 角色頁：一盒巧克力 ═══════════════════════════════════ */
 :root[data-foret] .character_select,
@@ -701,6 +890,21 @@
 :root[data-foret] #character_popup { background: var(--fn-cake) !important; }
 :root[data-foret] .avatar_load_preview,
 :root[data-foret] #avatar_div img { border-radius: var(--fn-r-m); border: 2px solid var(--fn-line-cream); }
+
+/* 角色清單頂部的搜尋列：搜尋框吃滿剩餘寬度、按鈕可換行——
+   先前整排硬擠一行，搜尋框被壓成一小截 */
+:root[data-foret] #form_character_search_form {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center;
+    gap: 6px !important;
+    min-width: 0;
+}
+:root[data-foret] #character_search_bar {
+    flex: 1 1 150px !important;
+    min-width: 130px !important;
+    width: auto !important;
+}
 
 /* 歡迎頁／最近的聊天 */
 :root[data-foret] .welcomePanel {
@@ -805,56 +1009,8 @@
     }
 }
 
-/* ═══ 角色卡自訂版面相容（MVU／regex 狀態欄）═══════════════
-   不以 !important 侵入訊息內文，卡片自帶樣式永遠優先。 */
-:root[data-foret] #chat .mes_text > div,
-:root[data-foret] #chat .mes_text table { max-width: 100%; }
-
-/* 緊湊行距 */
-:root[data-foret][data-foret-compact='on'] #chat .mes { padding: 11px 16px !important; }
-:root[data-foret][data-foret-compact='on'] #chat .mes_text { line-height: 1.55; }
-
-/* 名字與時間戳之間留呼吸 */
-:root[data-foret] #chat .name_text { margin-right: 8px; }
-:root[data-foret] #chat .ch_name { margin-bottom: 3px; gap: 6px; }
-/* 淋邊柔化：改成連續的奶油弧，不是鋸齒 */
-:root[data-foret][data-foret-immersive='on'] #foret-header::after {
-    height: 4px;
-    bottom: -4px;
-    background:
-        radial-gradient(9px 8px at 9px -2px, var(--fn-cream) 62%, transparent 64%);
-    background-repeat: repeat-x;
-    background-size: 26px 8px;
-    opacity: .38;
-}
-
-/* 手機：輸入框獨佔上排、控制列在下排——次要按鈕再多也不擠壓輸入框
-   （桌面空間足夠，維持單排）。 */
-@media screen and (max-width: 700px) {
-    :root[data-foret] #nonQRFormItems {
-        flex-wrap: wrap !important;
-        row-gap: 8px;
-    }
-    :root[data-foret] #send_textarea {
-        flex: 1 0 100% !important;
-        order: -1;
-    }
-    :root[data-foret] #leftSendForm { order: 1; }
-    :root[data-foret] #rightSendForm {
-        order: 2;
-        margin-left: auto;
-        flex-wrap: nowrap !important;
-        max-width: calc(100% - 96px);
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        justify-content: flex-end;
-    }
-    :root[data-foret] #rightSendForm::-webkit-scrollbar { display: none; }
-}
-
 /* ═══════════════════════════════════════════════════════════════
-   浮起的圓角托盤（v2.1）
+   浮起的圓角托盤
    所有面板——世界書、設定、角色、擴充——一律改成置中浮起的
    大圓角卡片，背後壓一層可可色薄紗。與 ST 原生彈窗同一種語彙。
    鐵律不變：#top-settings-holder 仍為 overflow:visible，
@@ -949,30 +1105,15 @@
 :root[data-foret] #world_popup_entries_list > .world_entry {
     border-radius: var(--fn-r-m) !important;
 }
-/* 擴充管理清單的每一列（使用者截圖裡喜歡的那種列） */
-:root[data-foret] .extension_block {
-    background: var(--fn-cake-2) !important;
-    border: 1px solid var(--fn-line) !important;
-    padding: 9px 12px !important;
-    margin-bottom: 7px;
-    transition: border-color .18s, background .18s;
-}
-:root[data-foret] .extension_block:hover {
-    background: var(--fn-cake-3) !important;
-    border-color: var(--fn-cherry) !important;
-}
-:root[data-foret] .extension_block .extension_name,
-:root[data-foret] .extension_block a { color: var(--fn-cherry-soft) !important; }
-:root[data-foret] .extension_block .fa-solid,
-:root[data-foret] .extension_block .fa-brands {
-    color: var(--fn-caramel);
-}
-/* 托盤底部的關閉鍵：奶油描邊的圓角鈕 */
+/* 托盤底部的關閉鍵：奶油描邊的圓角鈕；文字不折行——
+   折行會把膠囊撐成一顆圓球 */
 :root[data-foret] .popup-button-close,
 :root[data-foret] .popup .menu_button {
     border-radius: 999px !important;
     border: 1px solid var(--fn-line-cream) !important;
-    padding: 7px 22px !important;
+    padding: 7px 16px !important;
+    white-space: nowrap !important;
+    line-height: 1.35 !important;
 }
 :root[data-foret] .popup-button-ok {
     background: var(--fn-cherry) !important;
@@ -1007,175 +1148,66 @@
 }
 
 /* ═══ 擴充管理清單：名稱要看得見 ═══════════════════════════════
-   病根：每列的操作鈕沿用了 .menu_button 的大內距，把名稱欄擠到只
-   剩一個字。改法：整列排成 flex，名稱吃滿剩餘寬度並可省略，
-   操作鈕固定小尺寸不撐開。 */
+   病根有二：
+   1. 操作鈕沿用 .menu_button 的大內距，四顆排開就把名稱擠到只剩
+      一兩個字——操作鈕固定 34px 小方鈕。
+   2. 名稱常包在「無 class 的容器」裡，粗暴的「> div 一律 34px」
+      會把名稱自己也壓扁（鐵律第 4 條）——只縮真正的按鈕。 */
 :root[data-foret] .extension_block {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center;
+    justify-content: flex-start !important;
     gap: 8px;
+    background: var(--fn-cake-2) !important;
+    border: 1px solid var(--fn-line) !important;
     padding: 8px 10px !important;
+    margin-bottom: 7px;
+    overflow: hidden;
+    transition: border-color .18s, background .18s;
 }
-:root[data-foret] .extension_block > input[type='checkbox'] { flex: none; margin: 0; }
+:root[data-foret] .extension_block:hover {
+    background: var(--fn-cake-3) !important;
+    border-color: var(--fn-cherry) !important;
+}
+:root[data-foret] .extension_block > * { min-width: 0; }
+:root[data-foret] .extension_block > input[type='checkbox'] { flex: none; }
+/* 名稱：吃滿剩餘寬度、靠左、過長以刪節號收尾（置中會兩端都被裁） */
 :root[data-foret] .extension_block .extension_name,
 :root[data-foret] .extension_block > span,
-:root[data-foret] .extension_block > a {
+:root[data-foret] .extension_block > a,
+:root[data-foret] .extension_block label {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left !important;
+    justify-content: flex-start !important;
     font-size: 13.5px;
+    color: var(--fn-cream) !important;
 }
+:root[data-foret] .extension_block a { color: var(--fn-cherry-soft) !important; }
+:root[data-foret] .extension_block .fa-solid,
+:root[data-foret] .extension_block .fa-brands { color: var(--fn-caramel); }
+/* 操作鈕（更新／分支／搬移／刪除）：固定小方鈕，不撐開整列 */
 :root[data-foret] .extension_block .menu_button,
-:root[data-foret] .extension_block > .fa-solid,
-:root[data-foret] .extension_block > div:not(.extension_name) {
+:root[data-foret] .extension_block .btn_update,
+:root[data-foret] .extension_block .btn_branch,
+:root[data-foret] .extension_block .btn_move,
+:root[data-foret] .extension_block .btn_delete {
     flex: none !important;
     width: 34px !important;
     height: 34px !important;
     min-width: 34px !important;
+    max-width: 34px !important;
     padding: 0 !important;
+    margin: 0 !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
     font-size: 13px !important;
     border-radius: var(--fn-r-s) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   v2.2 修正集
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ① 頭部「更多」選單：改成浮在頭部下方的托盤，點了看得到反應 */
-:root[data-foret] #options {
-    z-index: 3200 !important;
-}
-:root[data-foret] #options .options-content {
-    position: fixed !important;
-    top: 62px !important;
-    right: 11px !important;
-    left: auto !important;
-    bottom: auto !important;
-    min-width: 210px;
-    max-width: calc(100dvw - 22px);
-    max-height: calc(100dvh - 120px);
-    overflow-y: auto;
-    background: var(--fn-cake) !important;
-    border: 1px solid var(--fn-line-2) !important;
-    border-radius: var(--fn-r-l) !important;
-    box-shadow: 0 18px 44px rgba(0, 0, 0, .55) !important;
-    padding: 8px !important;
-    z-index: 3200 !important;
-}
-:root[data-foret] #options .options-content a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px !important;
-    border-radius: var(--fn-r-s);
-    color: var(--fn-cream) !important;
-    font-size: 14px;
-}
-:root[data-foret] #options .options-content a:hover {
-    background: var(--fn-cherry-jam) !important;
-    color: var(--fn-cherry-soft) !important;
-}
-:root[data-foret] #options .options-content a i { color: var(--fn-caramel); width: 18px; text-align: center; }
-
-/* ② 玩家訊息：頭貼換到右邊 */
-:root[data-foret] #chat .mes[is_user='true'] {
-    flex-direction: row-reverse !important;
-}
-:root[data-foret] #chat .mes[is_user='true'] .ch_name {
-    flex-direction: row-reverse;
-}
-/* 內文維持靠左——長句右對齊會造成參差不齊、難讀；
-   只有頭貼與名字列靠右，足以分辨說話者。 */
-:root[data-foret] #chat .mes[is_user='true'] .mes_buttons { justify-content: flex-start; }
-
-/* ③ 訊息幅寬拉到畫面邊緣（手機不再留中央欄的空白） */
-@media screen and (max-width: 1000px) {
-    :root[data-foret] #chat { padding-inline: 0 !important; }
-    :root[data-foret] #chat .mes { padding: 14px 12px !important; }
-}
-
-/* ④ 輸入框上緣圓角不被遮：祖先容器不得裁切 */
-:root[data-foret] #form_sheld,
-:root[data-foret] #send_form,
-:root[data-foret] #nonQRFormItems {
-    overflow: visible !important;
-}
-:root[data-foret] #send_textarea {
-    box-sizing: border-box !important;
-    margin: 0 !important;
-    position: relative;
-    z-index: 1;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   v2.3 修正集
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ① 底部輸入區給實色托盤底——先前是漸層透明，快捷鍵與輸入框像懸空
-   的框浮在對話文字上，看起來「被遮住」。 */
-:root[data-foret] #form_sheld {
-    background: var(--fn-base-2) !important;
-    border-top: 1px solid var(--fn-line);
-    padding-top: 8px !important;
-}
-
-/* ② 訊息版面：頭貼與名字同一行，內文另起一行吃滿整寬
-   —— 文字可用空間變大；玩家側整組靠右。 */
-:root[data-foret] #chat .mes {
-    display: block !important;
-}
-:root[data-foret] #chat .mes .mesAvatarWrapper {
-    float: left;
-    margin: 0 10px 4px 0;
-}
-:root[data-foret] #chat .mes .mes_block {
-    width: auto !important;
-    max-width: 100% !important;
-}
-:root[data-foret] #chat .mes .ch_name {
-    display: flex;
-    align-items: baseline;
-    min-height: 36px;
-}
-:root[data-foret] #chat .mes .mes_text {
-    clear: both;
-    padding-top: 4px;
-}
-/* 玩家側：頭貼靠右、名字列靠右、內文靠右 */
-:root[data-foret] #chat .mes[is_user='true'] .mesAvatarWrapper {
-    float: right;
-    margin: 0 0 4px 10px;
-}
-:root[data-foret] #chat .mes[is_user='true'] .ch_name {
-    flex-direction: row-reverse;
-}
-:root[data-foret] #chat .mes[is_user='true'] .mes_text {
-    text-align: right;
-}
-:root[data-foret] #chat .mes[is_user='true'] .mes_buttons {
-    justify-content: flex-start;
-}
-/* 浮動清除：避免下一則訊息被上一則的頭貼卡住 */
-:root[data-foret] #chat .mes::after {
-    content: '';
-    display: block;
-    clear: both;
-}
-
-/* ③ 擴充清單名稱：靠左對齊——置中時過長會左右兩端都被裁掉 */
-:root[data-foret] .extension_block .extension_name,
-:root[data-foret] .extension_block > span,
-:root[data-foret] .extension_block > a,
-:root[data-foret] .extension_block label {
-    text-align: left !important;
-    justify-content: flex-start !important;
-}
-:root[data-foret] .extension_block {
-    justify-content: flex-start !important;
+    white-space: nowrap !important;
 }

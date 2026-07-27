@@ -1,12 +1,12 @@
 {
-    "display_name": "Brume UI",
+    "display_name": "黑森林 Forêt-Noire",
     "loading_order": 100,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "style.css",
     "author": "morninglu",
-    "version": "1.3.0",
+    "version": "2.0.0",
     "homePage": "https://github.com/lubiyu0307-prog/st-brume",
     "auto_update": true
 }

@@ -718,10 +718,14 @@
         min-height: 26px !important;
     }
     /* 彈窗撐到接近全寬——擴充清單一列要放「勾選＋名稱＋四顆
-       操作鈕」，窄彈窗塞不下、最後一顆一定被裁 */
-    :root[data-foret] .popup {
+       操作鈕」，窄彈窗塞不下、最後一顆一定被裁
+       （dialog 元素與 .popup 都蓋，避免 ST 版本差異漏接） */
+    :root[data-foret] .popup,
+    :root[data-foret] dialog.popup,
+    :root[data-foret] dialog[class*='popup'] {
         width: calc(100dvw - 16px) !important;
         max-width: calc(100dvw - 16px) !important;
+        min-width: 0 !important;
     }
     /* 擴充列操作鈕再縮一號，四顆全進來 */
     :root[data-foret] .extension_block {

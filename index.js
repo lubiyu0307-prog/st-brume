@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.4.0';
+    const VERSION = '3.4.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -196,7 +196,17 @@
             e.stopPropagation();
             e.preventDefault();
             const btn = document.getElementById('options_button');
-            if (btn) btn.click();
+            if (!btn) return;
+            btn.click();
+            // 備援：部分版本以 jQuery 委派綁定，原生 click 可能沒進到
+            // 處理器——80ms 後偵測選單真的展開了沒，沒有就用 jQuery 再觸發
+            setTimeout(() => {
+                const c = document.querySelector('#options .options-content')
+                    || document.getElementById('options');
+                const r = c ? c.getBoundingClientRect() : null;
+                const shown = r && r.width > 0 && r.height > 0;
+                if (!shown && window.jQuery) window.jQuery(btn).trigger('click');
+            }, 80);
         });
     }
 

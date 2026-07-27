@@ -374,7 +374,7 @@
     padding: 0 !important;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
 }
 /* 主列：永遠一排 */
 :root[data-foret] #nonQRFormItems {
@@ -470,36 +470,50 @@
 :root[data-foret] #send_textarea::placeholder { color: var(--fn-cocoa); }
 :root[data-foret] #send_textarea:focus { border-color: var(--fn-cherry) !important; }
 
-/* 快速回覆：單排橫向捲動的小餅乾，不再堆成多排 */
-:root[data-foret] #qr--bar {
+/* 快速回覆：單排、小顆、貼緊輸入框
+   註：ST 的快捷列是 #qr--bar > .qr--buttons > .qr--button 兩層結構，
+   只鎖外層不夠——內層才是真正會換行的那一層。 */
+:root[data-foret] #qr--bar,
+:root[data-foret] #qr--bar .qr--buttons {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    justify-content: flex-start;
     align-items: center;
-    gap: 6px;
-    padding: 0 0 5px;
+    gap: 5px;
     background: transparent !important;
     box-shadow: none !important;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    min-width: 0;
 }
-:root[data-foret] #qr--bar::-webkit-scrollbar { display: none; }
+:root[data-foret] #qr--bar {
+    padding: 0 0 4px !important;
+    margin: 0 !important;
+    justify-content: flex-start;
+}
+:root[data-foret] #qr--bar .qr--buttons { width: 100%; }
+:root[data-foret] #qr--bar::-webkit-scrollbar,
+:root[data-foret] #qr--bar .qr--buttons::-webkit-scrollbar { display: none; }
 :root[data-foret] .qr--button {
     background: var(--fn-cake) !important;
     border: 1px solid var(--fn-line) !important;
     border-radius: 999px !important;
     color: var(--fn-caramel) !important;
-    font-size: 12.5px !important;
-    padding: 5px 13px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    padding: 3px 10px !important;
+    min-height: 0 !important;
+    height: auto !important;
     width: auto !important;
     flex: none !important;
     white-space: nowrap;
     box-shadow: none !important;
+    opacity: .85;
 }
 :root[data-foret] .qr--button:hover {
+    opacity: 1;
     background: var(--fn-cherry-jam) !important;
     color: var(--fn-cherry-soft) !important;
     border-color: var(--fn-cherry) !important;

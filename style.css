@@ -140,14 +140,31 @@
     -webkit-backdrop-filter: none !important;
 }
 
-/* ═══ 捲軸：可可粉細條 ═══════════════════════════════════════ */
-:root[data-foret] ::-webkit-scrollbar { width: 6px; height: 6px; }
-:root[data-foret] ::-webkit-scrollbar-track { background: transparent; }
-:root[data-foret] ::-webkit-scrollbar-thumb {
-    background: var(--fn-cake-3);
+/* ═══ 捲軸：一條分格的巧克力棒 ═══════════════════════════════
+   註：iOS 的捲軸是系統浮層，不吃網頁樣式——這節在桌面／有滑鼠
+   的環境才看得到。 */
+:root[data-foret] ::-webkit-scrollbar { width: 10px; height: 10px; }
+:root[data-foret] ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, .18);
     border-radius: 999px;
 }
-:root[data-foret] ::-webkit-scrollbar-thumb:hover { background: var(--fn-cherry-deep); }
+:root[data-foret] ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, .38);
+    background:
+        /* 分格的凹槽 */
+        repeating-linear-gradient(180deg, rgba(0, 0, 0, .34) 0 1.5px, transparent 1.5px 13px),
+        /* 左緣的高光，讓它像一塊有厚度的巧克力 */
+        linear-gradient(90deg, rgba(246, 239, 231, .18) 0 2px, transparent 2px),
+        linear-gradient(90deg, #6B4436, #4A2E25 58%, #33211C);
+}
+:root[data-foret] ::-webkit-scrollbar-thumb:hover {
+    background:
+        repeating-linear-gradient(180deg, rgba(0, 0, 0, .34) 0 1.5px, transparent 1.5px 13px),
+        linear-gradient(90deg, rgba(255, 243, 245, .22) 0 2px, transparent 2px),
+        linear-gradient(90deg, #A8384C, #8E2B3D 58%, #6E2130);
+}
+:root[data-foret] ::-webkit-scrollbar-corner { background: transparent; }
 
 /* ═══ 頂部：角色頭部（取代九宮圖示列常駐）═══════════════════ */
 #foret-header { display: none; }
@@ -181,14 +198,51 @@
     pointer-events: none;
 }
 :root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #foret-header::after { display: none; }
+/* 頭部頭貼：奶油扇貝環＋一顆代表「正在對話」的櫻桃
+   （img 是取代元素，掛不了偽元素，所以外面包一層 .fh-ava） */
+#foret-header .fh-ava {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    flex: none;
+    border-radius: 50%;
+    padding: 2.5px;
+    box-sizing: border-box;
+    background: repeating-conic-gradient(var(--fn-line-cream) 0 9deg, transparent 9deg 18deg);
+}
 #foret-header .fh-avatar {
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    flex: none;
+    display: block;
     background: var(--fn-cake-2);
-    border: 2px solid var(--fn-line-cream);
+    border: none;
+}
+/* 櫻桃：果實＋一段開心果色的梗 */
+#foret-header .fh-ava::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--fn-cherry);
+    box-shadow: 0 0 0 2.5px var(--fn-cake);
+}
+#foret-header .fh-ava::before {
+    content: '';
+    position: absolute;
+    right: 4px;
+    bottom: 9px;
+    width: 7px;
+    height: 7px;
+    z-index: 2;
+    border: 1.5px solid var(--fn-pistachio);
+    border-width: 1.5px 0 0 1.5px;
+    border-radius: 60% 0 0 0;
+    transform: rotate(18deg);
 }
 #foret-header .fh-text { flex: 1; min-width: 0; }
 #foret-header .fh-name {
@@ -325,16 +379,29 @@
     margin: 2px 0 0;
     float: none !important;
 }
-:root[data-foret] #chat .mes .avatar,
-:root[data-foret] #chat .mes .avatar img {
-    width: 34px !important;
-    height: 34px !important;
+/* 頭貼：外圈是一圈擠花般的奶油扇貝，不是實線描邊 */
+:root[data-foret] #chat .mes .avatar {
+    width: 38px !important;
+    height: 38px !important;
     border-radius: 50% !important;
-    border: 2px solid var(--fn-line-cream) !important;
+    border: none !important;
+    padding: 2.5px !important;
+    box-sizing: border-box !important;
+    background: repeating-conic-gradient(var(--fn-line-cream) 0 9deg, transparent 9deg 18deg) !important;
+    overflow: visible !important;
+}
+:root[data-foret] #chat .mes .avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    border: none !important;
+    object-fit: cover;
+    display: block;
 }
 
 /* 泡泡本體：貼齊文字，靠頭貼那一角收小 */
 :root[data-foret] #chat .mes .mes_block {
+    position: relative;
     flex: 0 1 auto !important;
     width: fit-content !important;
     min-width: 0 !important;
@@ -354,10 +421,75 @@
     border-radius: 16px 4px 16px 16px !important;
 }
 :root[data-foret] #chat .mes .mes_block > * { min-width: 0; }
+
+/* 泡泡小尾巴：靠頭貼那一側長出一個尖角，指向說話的人。
+   用絕對定位的偽元素，不是 flex 子項，不影響版面；
+   顏色與泡泡同一個透明度，貼在背景圖上才不會色差。 */
+:root[data-foret] #chat .mes .mes_block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -7px;
+    width: 9px;
+    height: 12px;
+    background: var(--fn-bubble);
+    clip-path: polygon(100% 0, 100% 100%, 0 0);
+    pointer-events: none;
+}
+:root[data-foret] #chat .mes[is_user='true'] .mes_block::before {
+    left: auto;
+    right: -7px;
+    background: var(--fn-bubble-user);
+    clip-path: polygon(0 0, 0 100%, 100% 0);
+}
+/* 編輯中泡泡撐滿整寬，尾巴收起免得歪在旁邊 */
+:root[data-foret] #chat .mes:has(.edit_textarea) .mes_block::before { display: none; }
 /* 編輯訊息時泡泡撐滿整寬，編輯框才夠用 */
 :root[data-foret] #chat .mes:has(.edit_textarea) .mes_block {
     width: 100% !important;
     max-width: 100% !important;
+}
+
+/* ── 日期分隔：一條奶油淋醬 ────────────────────────────────
+   ST 本身沒有日期分隔線，由 index.js 判斷「這則是當天第一則」，
+   把日期字串寫進 data-foret-day，這裡用兩個絕對定位的偽元素畫出來
+   ——完全不往 #chat 插入節點，不影響 ST 對 .mes 的索引。 */
+:root[data-foret] #chat .mes[data-foret-day] {
+    position: relative;
+    margin-top: 14px !important;
+    padding-top: 30px !important;
+}
+/* 淋醬線 */
+:root[data-foret] #chat .mes[data-foret-day]::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 12px;
+    height: 6px;
+    background: radial-gradient(7px 6px at 7px -1px, var(--fn-cream) 60%, transparent 62%);
+    background-repeat: repeat-x;
+    background-size: 19px 6px;
+    opacity: .3;
+    pointer-events: none;
+}
+/* 中間的日期小標 */
+:root[data-foret] #chat .mes[data-foret-day]::before {
+    content: attr(data-foret-day);
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--fn-caramel);
+    background: var(--fn-cake);
+    border: 1px solid var(--fn-line);
+    padding: 2px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 /* 名字列：角色顯示、玩家收起（自己的訊息不用標名字） */
@@ -629,7 +761,16 @@
     color: var(--fn-cocoa);
     text-align: left !important;
 }
-:root[data-foret] #send_textarea:focus { border-color: var(--fn-cherry) !important; }
+/* 聚焦：一圈擠上去的奶油邊，外面暈一層櫻桃。
+   必須用 inset——輸入框有 clip-path 裁圓角（v3.2.2 修 iOS 平切用的），
+   外擴的陰影會被裁掉，只有內陰影畫得出來。 */
+:root[data-foret] #send_textarea:focus {
+    border-color: rgba(246, 239, 231, .34) !important;
+    box-shadow:
+        inset 0 0 0 2px rgba(246, 239, 231, .42),
+        inset 0 0 0 4.5px rgba(200, 70, 90, .30) !important;
+    transition: box-shadow .18s ease, border-color .18s ease;
+}
 /* 輸入框上緣圓角不被遮：祖先容器不得裁切 */
 :root[data-foret] #form_sheld,
 :root[data-foret] #send_form,
@@ -1417,6 +1558,49 @@
     border-color: rgba(169, 217, 140, .55) !important;
     background: rgba(169, 217, 140, .12) !important;
 }
+
+/* ═══ 狀態小標籤：全部同一款圓標 ═══════════════════════════
+   ST 用 .success／.failure 標示連線與模組狀態（extensions.js 的
+   updateStatus），用 .update_available 標示有新版。統一成同一種
+   膠囊：綠的是開心果、粉的是櫻桃。只作用在擴充區與連線狀態，
+   不動一般內文裡的 .success／.failure。 */
+:root[data-foret] #extensions_status,
+:root[data-foret] .extensions_info .success,
+:root[data-foret] .extensions_info .failure,
+:root[data-foret] .extensions_block .success,
+:root[data-foret] .extensions_block .failure {
+    display: inline-block;
+    font-size: 11.5px !important;
+    line-height: 1.5;
+    padding: 2px 11px !important;
+    border-radius: 999px !important;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+:root[data-foret] #extensions_status.success,
+:root[data-foret] .extensions_info .success,
+:root[data-foret] .extensions_block .success {
+    color: var(--fn-pistachio-2) !important;
+    border-color: rgba(169, 217, 140, .5) !important;
+    background: rgba(169, 217, 140, .13) !important;
+}
+:root[data-foret] #extensions_status.failure,
+:root[data-foret] .extensions_info .failure,
+:root[data-foret] .extensions_block .failure {
+    color: var(--fn-cherry-soft) !important;
+    border-color: rgba(224, 120, 138, .5) !important;
+    background: rgba(200, 70, 90, .15) !important;
+}
+/* 頂部 API 連線指示燈：同一組語意色 */
+:root[data-foret] .online_status_indicator {
+    background-color: var(--fn-cherry-deep) !important;
+    box-shadow: 0 0 0 2px rgba(200, 70, 90, .2);
+}
+:root[data-foret] .online_status_indicator.success {
+    background-color: var(--fn-pistachio-2) !important;
+    box-shadow: 0 0 0 2px rgba(169, 217, 140, .22);
+}
+:root[data-foret] .online_status_text { color: var(--fn-caramel); }
 
 /* ═══ 護欄：ST 以 .displayNone 收納元件，主題永遠不得讓它現形 ═══
    踩過兩次的坑（輸入列情境按鈕、擴充列更新鈕）：主題只要對這些

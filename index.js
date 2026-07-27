@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.6.2';
+    const VERSION = '3.7.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -171,6 +171,91 @@
         }
     }
 
+    // ── 日期分隔線 ─────────────────────────────────────────────
+    // ST 的聊天沒有日期分隔（原始碼確認過）。這裡判斷「這則是當天
+    // 第一則」，把日期字串寫進 data-foret-day，交給 style.css 用偽
+    // 元素畫成奶油淋醬線——不往 #chat 插入任何節點，ST 對 .mes 的
+    // 索引（updateViewMessageIds 等）不受影響。
+    const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june',
+                    'july', 'august', 'september', 'october', 'november', 'december'];
+
+    // send_date 的格式來自 ST 的 parseTimestamp（public/scripts/utils.js），
+    // 這裡照著同一組樣式解析，解不出來就放棄（不畫分隔線）。
+    function parseSendDate(v) {
+        if (v === null || v === undefined || v === '') return null;
+        if (v instanceof Date) return isNaN(v) ? null : v;
+        if (typeof v === 'number' || /^\d+$/.test(String(v))) {
+            const d = new Date(Number(v));
+            return isNaN(d) ? null : d;
+        }
+        const s = String(v);
+        let m;
+        // 2024-07-12@01h31m37s123ms ／ 2024-7-12@01h31m37s ／ 2024-6-5 @14h 56m 50s 682ms
+        m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s*@\s*(\d{1,2})h\s*(\d{1,2})m\s*(\d{1,2})s/);
+        if (m) {
+            const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+                               Number(m[4]), Number(m[5]), Number(m[6]));
+            return isNaN(d) ? null : d;
+        }
+        // June 19, 2023 2:20pm
+        m = s.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)/i);
+        if (m) {
+            const mo = MONTHS.indexOf(m[1].toLowerCase());
+            if (mo >= 0) {
+                let h = Number(m[4]) % 12;
+                if (m[6].toLowerCase() === 'pm') h += 12;
+                const d = new Date(Number(m[3]), mo, Number(m[2]), h, Number(m[5]));
+                return isNaN(d) ? null : d;
+            }
+        }
+        const d = new Date(s);          // ISO 8601 等瀏覽器認得的格式
+        return isNaN(d) ? null : d;
+    }
+
+    function dayKey(d) {
+        return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    }
+
+    function dayLabel(d) {
+        const today = new Date();
+        if (dayKey(d) === dayKey(today)) return '今天';
+        const y = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        if (dayKey(d) === dayKey(y)) return '昨天';
+        const week = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+        const sameYear = d.getFullYear() === today.getFullYear();
+        return (sameYear ? '' : d.getFullYear() + '年')
+            + (d.getMonth() + 1) + '月' + d.getDate() + '日（週' + week + '）';
+    }
+
+    function markDaySeparators() {
+        const rows = document.querySelectorAll('#chat .mes');
+        if (!rows.length) return;
+        let chat = null;
+        try {
+            const ctx = getContext();
+            chat = ctx && Array.isArray(ctx.chat) ? ctx.chat : null;
+        } catch (_) { }
+        if (!chat) return;
+
+        let prevKey = null;
+        for (const row of rows) {
+            const id = Number(row.getAttribute('mesid'));
+            const mes = Number.isFinite(id) ? chat[id] : null;
+            const d = mes ? parseSendDate(mes.send_date) : null;
+            if (!d) { row.removeAttribute('data-foret-day'); continue; }
+            const key = dayKey(d);
+            if (key !== prevKey) {
+                const label = dayLabel(d);
+                if (row.getAttribute('data-foret-day') !== label) {
+                    row.setAttribute('data-foret-day', label);
+                }
+                prevKey = key;
+            } else if (row.hasAttribute('data-foret-day')) {
+                row.removeAttribute('data-foret-day');
+            }
+        }
+    }
+
     // ── 擴充管理彈窗：版面矯正（量測式，不猜 class 名）─────────
     // 前幾版失敗的原因：用 CSS 猜 ST 的 class 名稱去縮按鈕、撐容器，
     // 猜錯就完全無效，而且看不出來。這裡改成不依賴任何 class：
@@ -292,7 +377,9 @@
         // 選單，而經 JS 轉發的點擊在 iOS 上始終開不出來——留著只是
         // 一顆死鍵。選單一律從 ☰ 進。
         el.innerHTML =
-            '<img class="fh-avatar" alt="" />' +
+            // 頭貼外面包一層，奶油扇貝環與櫻桃徽章才有地方掛
+            //（img 是取代元素，偽元素不會算圖）
+            '<span class="fh-ava"><img class="fh-avatar" alt="" /></span>' +
             '<div class="fh-text"><div class="fh-name"></div><div class="fh-sub"></div></div>' +
             '<div class="fh-btn fh-tools fa-solid fa-sliders" title="工具列"></div>';
         document.body.appendChild(el);
@@ -327,8 +414,16 @@
         el.querySelector('.fh-name').textContent = name;
         el.querySelector('.fh-sub').textContent = sub;
         const img = el.querySelector('.fh-avatar');
-        if (avatar) { img.src = avatar; img.style.visibility = 'visible'; }
-        else { img.removeAttribute('src'); img.style.visibility = 'hidden'; }
+        // 沒有角色時整組收起——奶油環與櫻桃徽章掛在外層，
+        // 只藏 img 的話會剩一圈空環浮著
+        const ava = el.querySelector('.fh-ava');
+        if (avatar) {
+            img.src = avatar;
+            if (ava) ava.style.visibility = 'visible';
+        } else {
+            img.removeAttribute('src');
+            if (ava) ava.style.visibility = 'hidden';
+        }
     }
 
     function hookEvents() {
@@ -337,11 +432,15 @@
             if (ctx && ctx.eventSource && ctx.event_types) {
                 const evs = [ctx.event_types.CHAT_CHANGED, ctx.event_types.CHARACTER_EDITED,
                              ctx.event_types.GROUP_UPDATED, ctx.event_types.SETTINGS_UPDATED].filter(Boolean);
-                evs.forEach(e => ctx.eventSource.on(e, () => { updateHeader(); detectBackground(); }));
+                evs.forEach(e => ctx.eventSource.on(e, () => {
+                    updateHeader(); detectBackground(); markDaySeparators();
+                }));
             }
         } catch (_) { }
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
-        setInterval(() => { detectBackground(); tradifyMenus(); fixExtensionsPopupLayout(); }, 3000);
+        setInterval(() => {
+            detectBackground(); tradifyMenus(); fixExtensionsPopupLayout(); markDaySeparators();
+        }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
         document.addEventListener('click', () => setTimeout(() => {
@@ -359,6 +458,7 @@
                     timer = null;
                     tradifyMenus();
                     fixExtensionsPopupLayout();
+                    markDaySeparators();
                 }, 200);
             });
             observer.observe(document.body, { childList: true, subtree: true });

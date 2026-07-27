@@ -881,9 +881,14 @@
 
 /* 快速回覆：單排橫向捲動；夠大顆才按得到、看得清
    註：ST 的快捷列是 #qr--bar > .qr--buttons > .qr--button 兩層結構，
-   只鎖外層不夠——內層才是真正會換行的那一層。 */
+   只鎖外層不夠——內層才是真正會換行的那一層。
+   但只能鎖「直接子代」（>）：載入多組快速回覆時，ST 會再包一層
+   巢狀的 .qr--buttons 當作群組，並用 display:contents 把它攤平
+  （見 quick-reply/style.css）。用後代選擇器會連那層一起改成 flex
+   容器，於是每一組被當成單一 flex 項目一起壓縮——按鈕擠成一團、
+   標籤被裁掉。只有一組時看不出來，所以會因人而異。 */
 :root[data-foret] #qr--bar,
-:root[data-foret] #qr--bar .qr--buttons {
+:root[data-foret] #qr--bar > .qr--buttons {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -897,14 +902,28 @@
     -webkit-overflow-scrolling: touch;
     min-width: 0;
 }
+/* 巢狀的群組容器維持攤平，不可變成 flex 容器 */
+:root[data-foret] #qr--bar .qr--buttons .qr--buttons {
+    display: contents !important;
+}
 :root[data-foret] #qr--bar {
     padding: 0 0 4px !important;
     margin: 0 !important;
     justify-content: flex-start;
 }
-:root[data-foret] #qr--bar .qr--buttons { width: 100%; }
+:root[data-foret] #qr--bar > .qr--buttons { width: 100%; }
 :root[data-foret] #qr--bar::-webkit-scrollbar,
-:root[data-foret] #qr--bar .qr--buttons::-webkit-scrollbar { display: none; }
+:root[data-foret] #qr--bar > .qr--buttons::-webkit-scrollbar { display: none; }
+/* 帶「⋮」的分割按鈕：ST 原生給 margin-left:1em + width:2em，
+   在我們縮小過的字級下會把標籤擠掉，收窄一點並套上主題線色 */
+:root[data-foret] .qr--button-expander {
+    margin-left: .5em !important;
+    padding-left: .35em;
+    width: 1.3em !important;
+    flex: none;
+    border-left-color: var(--fn-line-2) !important;
+    opacity: .8;
+}
 :root[data-foret] .qr--button {
     background: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line-2) !important;
@@ -1818,5 +1837,17 @@
     :root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #top-settings-holder {
         justify-content: center;
         gap: clamp(10px, 2.2vw, 40px);
+    }
+    /* 快速回覆改自動換行：單排橫向捲動是為觸控設計的，滑鼠使用者
+       看不出右邊還有東西。按鈕多時往下疊，超過三排才捲動。 */
+    :root[data-foret] #qr--bar,
+    :root[data-foret] #qr--bar > .qr--buttons {
+        flex-wrap: wrap !important;
+        overflow-x: visible;
+        row-gap: 5px;
+    }
+    :root[data-foret] #qr--bar {
+        max-height: 108px;
+        overflow-y: auto;
     }
 }

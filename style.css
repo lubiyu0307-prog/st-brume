@@ -334,7 +334,9 @@
     flex: 0 1 auto !important;
     width: fit-content !important;
     min-width: 0 !important;
-    max-width: min(86%, 660px) !important;
+    /* 上限只擋桌面的過長行寬；手機交給 flex-shrink 吃滿剩餘空間。
+       短訊息仍由 width:fit-content 貼齊文字。 */
+    max-width: min(100%, 720px) !important;
     background: var(--fn-bubble) !important;
     border: 1px solid rgba(246, 239, 231, 0.07) !important;
     border-radius: 4px 16px 16px 16px !important;
@@ -381,6 +383,20 @@
     text-align: left !important;
     padding-top: 2px;
 }
+/* 內文吃滿泡泡：ST／角色卡常在 mes_text 或其段落上留右側內距與
+   外距，文字會提早換行、泡泡右側空一塊。這裡全部歸零。 */
+:root[data-foret] #chat .mes_text,
+:root[data-foret] #chat .mes_text > p,
+:root[data-foret] #chat .mes_text > div:not([class]),
+:root[data-foret] #chat .mes_text > span {
+    width: auto !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    box-sizing: border-box;
+}
+:root[data-foret] #chat .mes_text > p { margin-block: 0 .7em !important; }
+:root[data-foret] #chat .mes_text > p:last-child { margin-bottom: 0 !important; }
 :root[data-foret] #chat .mes[is_user='true'] .mes_text { color: var(--fn-on-cherry); }
 :root[data-foret] #chat .mes_text q { color: var(--fn-cherry-soft); }
 :root[data-foret] #chat .mes[is_user='true'] .mes_text q { color: #FFD3DB; }
@@ -388,18 +404,31 @@
 :root[data-foret] #chat .mes_text i { color: var(--fn-caramel); font-style: italic; }
 :root[data-foret] #chat .mes_text a { color: var(--fn-cherry-soft); }
 
-/* 訊息動作鈕：滑鼠裝置滑過才浮現；觸控裝置沒有 hover，
-   常駐半透明，點得到也不搶戲 */
+/* 訊息動作鈕（⋯／鉛筆）：滑鼠裝置滑過才浮現；觸控裝置沒有
+   hover，常駐且要看得清楚——先前用可可色＋半透明，壓在深色
+   泡泡上幾乎隱形。改用櫻桃亮階、不透明。 */
 :root[data-foret] #chat .mes .mes_buttons { opacity: 0; transition: opacity .18s; }
 :root[data-foret] #chat .mes:hover .mes_buttons,
 :root[data-foret] #chat .mes:focus-within .mes_buttons { opacity: 1; }
 @media (hover: none) {
-    :root[data-foret] #chat .mes .mes_buttons { opacity: .5; }
+    :root[data-foret] #chat .mes .mes_buttons { opacity: 1; }
 }
 :root[data-foret] #chat .mes[is_user='true'] .mes_buttons { justify-content: flex-start; }
-:root[data-foret] .mes_button { color: var(--fn-cocoa); }
-:root[data-foret] .mes_button:hover { color: var(--fn-cherry-soft); }
-:root[data-foret] #chat .mes[is_user='true'] .mes_button { color: rgba(255, 243, 245, .6); }
+:root[data-foret] .mes_button,
+:root[data-foret] #chat .mes .mes_buttons .mes_button,
+:root[data-foret] #chat .mes .mes_buttons .fa-solid,
+:root[data-foret] #chat .mes .mes_buttons .fa-regular {
+    color: var(--fn-cherry-soft) !important;
+    opacity: 1 !important;
+    font-size: 14px;
+}
+:root[data-foret] .mes_button:hover { color: var(--fn-cream) !important; }
+/* 玩家側是櫻桃底，粉色會糊在一起——改用壓在櫻桃上的奶油白 */
+:root[data-foret] #chat .mes[is_user='true'] .mes_button,
+:root[data-foret] #chat .mes[is_user='true'] .mes_buttons .fa-solid,
+:root[data-foret] #chat .mes[is_user='true'] .mes_buttons .fa-regular {
+    color: var(--fn-on-cherry) !important;
+}
 :root[data-foret] .swipe_left,
 :root[data-foret] .swipe_right {
     color: var(--fn-cocoa) !important;
@@ -436,7 +465,10 @@
 /* 手機：泡泡吃到接近整寬 */
 @media screen and (max-width: 1000px) {
     :root[data-foret] #chat { padding-inline: 0 !important; }
-    :root[data-foret] #chat .mes .mes_block { max-width: 88% !important; }
+    /* 手機：長訊息的泡泡吃到剩餘寬度的極限（短訊息仍貼齊文字——
+       靠 width:fit-content＋flex-shrink，不是把泡泡撐滿） */
+    :root[data-foret] #chat .mes { padding: 5px 8px !important; }
+    :root[data-foret] #chat .mes .mes_block { max-width: 100% !important; }
 }
 
 /* ═══ 輸入區：一列到底的托盤 ═════════════════════════════════

@@ -299,6 +299,13 @@
 /* 展開的圖示列給實色可可底——先前透明時背景圖亮部會透上來，
    圖示變成一條金黃色雜訊 */
 :root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #top-settings-holder {
+    /* ST 原生是 width: var(--sheldWidth) + margin:0 auto——寬度跟著
+       聊天欄走並置中，不是滿版。只給背景色的話，寬螢幕上兩端會
+       露出底圖（看起來像破掉一截）。這裡拉成整條。 */
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    box-sizing: border-box;
     background: var(--fn-cake) !important;
     border-bottom: 1px solid var(--fn-line);
     box-shadow: 0 8px 20px rgba(10, 5, 3, .35);

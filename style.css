@@ -61,6 +61,7 @@
     --fn-bubble-user: rgba(142, 43, 61, 0.68);  /* 玩家泡泡：櫻桃 */
     /* 開心果（次要點綴：成功／啟用狀態） */
     --fn-pistachio: #8FAE72;
+    --fn-pistachio-2: #A9D98C; /* 亮半階：深底上的「有更新」標示 */
     /* 線條 */
     --fn-line: rgba(246, 239, 231, 0.10);
     --fn-line-2: rgba(246, 239, 231, 0.20);
@@ -301,7 +302,10 @@
     padding-bottom: 6px;
 }
 
-:root[data-foret] #chat .mes {
+/* :not(.displayNone) 必要：ST 在工具呼叫進行中會用 .displayNone
+   把還沒有內容的訊息藏起來（script.js 的 #updateMessageBlockVisibility），
+   無條件 display:flex 會讓空泡泡閃出來 */
+:root[data-foret] #chat .mes:not(.displayNone) {
     display: flex !important;
     flex-direction: row;
     align-items: flex-start;
@@ -773,6 +777,7 @@
         height: 30px !important;
         min-width: 30px !important;
         max-width: 30px !important;
+        line-height: 30px !important;
         font-size: 12px !important;
     }
 }
@@ -1334,7 +1339,7 @@
       一兩個字——操作鈕固定 34px 小方鈕。
    2. 名稱常包在「無 class 的容器」裡，粗暴的「> div 一律 34px」
       會把名稱自己也壓扁（鐵律第 4 條）——只縮真正的按鈕。 */
-:root[data-foret] .extension_block {
+:root[data-foret] .extension_block:not(.displayNone) {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -1387,10 +1392,34 @@
     max-width: 34px !important;
     padding: 0 !important;
     margin: 0 !important;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
+    /* 鐵律：不可設定 display——ST 用 .displayNone 把「更新」鈕藏起來，
+       只有真的有新版時才 remove 掉那個 class（見 extensions.js 的
+       checkForUpdatesManual）。寫 display:flex 會讓每一列都常駐一顆
+       更新鈕。置中改用 line-height。 */
+    line-height: 34px !important;
+    text-align: center !important;
     font-size: 13px !important;
     border-radius: var(--fn-r-s) !important;
     white-space: nowrap !important;
 }
+
+/* 有新版可更新：ST 會為名稱掛上 .update_available，並把更新鈕的
+   .displayNone 拿掉（extensions.js）。名稱轉開心果綠＋加粗，
+   更新鈕同樣轉綠——這顆鈕本來就只在有更新時才出現。
+   選擇器多一個 class，優先權才蓋得過上面的奶油色名稱規則。 */
+:root[data-foret] .extension_block .extension_name.update_available,
+:root[data-foret] .extension_block .extension_name.update_available * {
+    color: var(--fn-pistachio-2) !important;
+    font-weight: 700 !important;
+}
+:root[data-foret] .extension_block .btn_update {
+    color: var(--fn-pistachio-2) !important;
+    border-color: rgba(169, 217, 140, .55) !important;
+    background: rgba(169, 217, 140, .12) !important;
+}
+
+/* ═══ 護欄：ST 以 .displayNone 收納元件，主題永遠不得讓它現形 ═══
+   踩過兩次的坑（輸入列情境按鈕、擴充列更新鈕）：主題只要對這些
+   元件寫了 display，被藏起來的就會全部常駐現形。這條用重複 class
+   拉高優先權，當作最後一道保險。 */
+:root[data-foret] .displayNone.displayNone.displayNone { display: none !important; }

@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.6.1';
+    const VERSION = '3.6.2';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -195,6 +195,9 @@
     }
 
     function fixExtensionRow(row) {
+        // ST 用 .displayNone 收納元件——被藏起來的一律不碰，
+        // 否則行內 display 會把它們全部翻出來（更新鈕就是這樣中招的）
+        if (row.classList.contains('displayNone')) return;
         row.style.setProperty('display', 'flex', 'important');
         row.style.setProperty('flex-direction', 'row', 'important');
         row.style.setProperty('flex-wrap', 'nowrap', 'important');
@@ -223,7 +226,9 @@
                 child.style.setProperty('text-align', 'left', 'important');
             } else if (child.children.length >= 2) {    // 成組的按鈕容器
                 child.style.setProperty('flex', 'none', 'important');
-                child.style.setProperty('display', 'flex', 'important');
+                if (!child.classList.contains('displayNone')) {
+                    child.style.setProperty('display', 'flex', 'important');
+                }
                 child.style.setProperty('flex-wrap', 'nowrap', 'important');
                 child.style.setProperty('gap', '5px', 'important');
                 child.style.setProperty('width', 'auto', 'important');

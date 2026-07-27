@@ -15,6 +15,9 @@
      · 輸入列不可用 width:100% + margin（會被推出右緣）
      · .extension_block 的子元素不可用「> div」一律縮成方鈕——
        名稱常包在無 class 的 div 裡，會被壓成 34px 而截字
+     · #rightSendForm 的情境按鈕（腳本播放／暫停／中止／繼續）由
+       ST 以 displayNone 收納——display 不可加 !important 蓋過，
+       否則整排常駐現形
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── 字體：粉圓體（jf open 粉圓，OFL）＋系統圓體退路 ────────── */
@@ -501,26 +504,36 @@
     background: var(--fn-cake-3) !important;
     color: var(--fn-cream) !important;
 }
-/* 右側次要動作：小一號、統一去色，跟送出鍵拉開層級 */
-:root[data-foret] #rightSendForm > div,
-:root[data-foret] #rightSendForm > div i {
+/* 右側次要動作：小一號、統一去色，跟送出鍵拉開層級
+   display 故意不加 !important——ST 用 displayNone 收納情境按鈕
+   （腳本播放／暫停／中止、繼續），蓋過它會讓整排常駐現形 */
+:root[data-foret] #rightSendForm > div {
     width: 30px;
     height: 30px;
     border-radius: 50% !important;
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 0 !important;
     font-size: 12px !important;
     flex: none;
     color: var(--fn-cocoa) !important;
-    background: transparent !important;
+    background: rgba(67, 45, 38, .55) !important;
     border: none !important;
     transition: color .18s, background .18s;
 }
-:root[data-foret] #rightSendForm > div { background: rgba(67, 45, 38, .55) !important; }
-:root[data-foret] #rightSendForm > div i { width: auto; height: auto; background: transparent !important; }
+:root[data-foret] #rightSendForm > div i {
+    width: auto;
+    height: auto;
+    padding: 0 !important;
+    font-size: 12px !important;
+    background: transparent !important;
+    border: none !important;
+}
 :root[data-foret] #rightSendForm > div:hover { color: var(--fn-cream) !important; background: var(--fn-cake-3) !important; }
+/* ST 收起來的按鈕就讓它收著（displayNone 優先於一切） */
+:root[data-foret] #rightSendForm > div.displayNone,
+:root[data-foret] #leftSendForm > div.displayNone { display: none !important; }
 /* 送出＝那顆櫻桃：明顯大一號、實心 */
 :root[data-foret] #rightSendForm > #send_but,
 :root[data-foret] #rightSendForm > #send_but i {
@@ -625,29 +638,42 @@
     :root[data-foret] #send_textarea { padding: 9px 14px !important; }
 }
 
-/* 手機：輸入框獨佔上排、控制列在下排——次要按鈕再多也不擠壓輸入框
-   （桌面空間足夠，維持單排）。 */
+/* 手機：輸入框整寬一排，下排＝[☰][✨][快捷字符條][➤]
+   nonQRFormItems 用 display:contents 攤平，快捷列才擠得進同一排——
+   情境按鈕收回去之後，這排空間正好給快捷字符用，聊天區多出一整列。
+   （桌面空間足夠，維持原版面。） */
 @media screen and (max-width: 700px) {
-    :root[data-foret] #nonQRFormItems {
+    :root[data-foret] #send_form {
+        flex-direction: row !important;
         flex-wrap: wrap !important;
-        row-gap: 8px;
+        align-items: center;
+        gap: 6px 7px;
     }
+    :root[data-foret] #nonQRFormItems { display: contents !important; }
     :root[data-foret] #send_textarea {
         flex: 1 0 100% !important;
         order: -1;
     }
     :root[data-foret] #leftSendForm { order: 1; }
-    :root[data-foret] #rightSendForm {
+    :root[data-foret] #qr--bar {
         order: 2;
+        flex: 1 1 0 !important;
+        min-width: 0;
+        width: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    :root[data-foret] #rightSendForm {
+        order: 3;
         margin-left: auto;
         flex-wrap: nowrap !important;
-        max-width: calc(100% - 96px);
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        justify-content: flex-end;
     }
-    :root[data-foret] #rightSendForm::-webkit-scrollbar { display: none; }
+    /* 快捷字符鈕縮小一號，塞進控制列不搶高度 */
+    :root[data-foret] .qr--button {
+        font-size: 11px !important;
+        padding: 4px 9px !important;
+        min-height: 26px !important;
+    }
 }
 
 /* ═══ 面板：一片一片的蛋糕盤 ═══════════════════════════════ */

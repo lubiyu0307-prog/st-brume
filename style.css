@@ -673,29 +673,26 @@
     }
     :root[data-foret] #nonQRFormItems,
     :root[data-foret] #rightSendForm { display: contents !important; }
-    /* 第一排：輸入框整寬，右端內側留給小飛機 */
+    /* 第一排：輸入框＋小飛機並排——飛機在框「後方」，輸入框
+       相應縮短（basis 100% 配 shrink，會自己讓出飛機的寬度，
+       又不會讓第二排的按鈕擠上來） */
     :root[data-foret] #send_textarea {
-        flex: 1 0 100% !important;
+        flex: 1 1 100% !important;
         order: -2;
-        padding-right: 48px !important;
     }
-    /* 小飛機：負邊距疊進輸入框右端。34px＋右內縮 10px＋底距 5px
-       ——單行時剛好垂直置中，多行輸入時貼底（iMessage 式）。
-       淨佔寬必須 <0（gap7 − 52 + 34 + 10 = −1）才不會把自己
-       擠到下一排。 */
     :root[data-foret] #rightSendForm > #send_but {
         order: -1;
-        width: 34px !important;
-        height: 34px !important;
-        font-size: 13px !important;
-        line-height: 34px;
-        margin: 0 10px 5px -52px !important;
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 14px !important;
+        line-height: 38px;
+        margin: 0 0 3px !important;
         align-self: flex-end;
         z-index: 3;
-        box-shadow: none;
+        box-shadow: 0 2px 8px rgba(200, 70, 90, .3);
     }
     :root[data-foret] #rightSendForm > #send_but i {
-        font-size: 13px !important;
+        font-size: 14px !important;
         line-height: inherit;
     }
     /* 第二排：☰ ✨ ＋ 快捷字符條；情境按鈕現形時排最後 */
@@ -718,14 +715,19 @@
         padding: 4px 9px !important;
         min-height: 26px !important;
     }
-    /* ☰ 選單改從底部彈出——選單原本固定在畫面右上，從底部的
-       ☰ 點開會以為沒反應 */
+    /* ☰／⋯ 選單改從底部彈出。
+       鐵律：不可用 bottom 錨定——ST 在 <html> 掛 transform，
+       固定定位的基準盒高度是 0，bottom:10px 會把選單排到畫面
+       頂端之外（看起來就是「點了沒反應」）。
+       改用 top:100dvh＋translateY(-100%)：位移基準是選單自己
+       的高度，不吃這個 bug。 */
     :root[data-foret] #options .options-content {
-        top: auto !important;
+        top: 100dvh !important;
         left: 11px !important;
         right: 11px !important;
-        bottom: max(env(safe-area-inset-bottom), 10px) !important;
-        max-height: min(62dvh, 480px) !important;
+        bottom: auto !important;
+        transform: translateY(calc(-100% - max(env(safe-area-inset-bottom), 10px))) !important;
+        max-height: min(60dvh, 460px) !important;
         z-index: 3300 !important;
     }
 }
@@ -1185,15 +1187,27 @@
 :root[data-foret] #world_popup_entries_list > .world_entry {
     border-radius: var(--fn-r-m) !important;
 }
-/* 托盤底部的關閉鍵：奶油描邊的圓角鈕；文字不折行——
-   折行會把膠囊撐成一顆圓球 */
+/* 彈窗裡的膠囊鈕：奶油描邊；文字不折行（折行會把膠囊撐成圓球），
+   但字級與內距收小，三顆並排（全部更新／僅更新啟用項目／排序）
+   才放得下、不被裁 */
 :root[data-foret] .popup-button-close,
 :root[data-foret] .popup .menu_button {
     border-radius: 999px !important;
     border: 1px solid var(--fn-line-cream) !important;
-    padding: 7px 16px !important;
+    padding: 7px 13px !important;
+    font-size: 13.5px !important;
     white-space: nowrap !important;
     line-height: 1.35 !important;
+    min-width: 0;
+    flex-shrink: 1;
+}
+/* 膠囊鈕的容器：塞不下就換行，不准截斷 */
+:root[data-foret] .popup div:has(> .menu_button + .menu_button) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
 }
 :root[data-foret] .popup-button-ok {
     background: var(--fn-cherry) !important;

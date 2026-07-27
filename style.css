@@ -566,9 +566,15 @@
 /* 輸入框：吃掉所有剩餘空間；文字靠左（ST 預設把提示置中，
    打字時游標位置很突兀） */
 :root[data-foret] #send_textarea {
+    /* iOS Safari 對 textarea 保留原生外觀，頂部會多一條內陰影
+       切線，圓角看起來像被削平——appearance 關掉，再用 clip-path
+       硬裁一次圓角，誰都蓋不掉 */
+    -webkit-appearance: none !important;
+    appearance: none !important;
     background: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line) !important;
     border-radius: var(--fn-r-l) !important;
+    clip-path: inset(0 round var(--fn-r-l)) !important;
     padding: 10px 16px !important;
     color: var(--fn-cream) !important;
     font-size: 15px;
@@ -579,7 +585,7 @@
     box-sizing: border-box !important;
     margin: 0 !important;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 /* 提示文字也要靠左——ST 對 ::placeholder 另外下了置中，
    只改 textarea 本身蓋不到它 */
@@ -685,7 +691,7 @@
         line-height: 34px;
         margin: 0 10px 5px -52px !important;
         align-self: flex-end;
-        z-index: 2;
+        z-index: 3;
         box-shadow: none;
     }
     :root[data-foret] #rightSendForm > #send_but i {

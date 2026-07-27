@@ -1042,3 +1042,73 @@
     font-size: 13px !important;
     border-radius: var(--fn-r-s) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   v2.2 修正集
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ① 頭部「更多」選單：改成浮在頭部下方的托盤，點了看得到反應 */
+:root[data-foret] #options {
+    z-index: 3200 !important;
+}
+:root[data-foret] #options .options-content {
+    position: fixed !important;
+    top: 62px !important;
+    right: 11px !important;
+    left: auto !important;
+    bottom: auto !important;
+    min-width: 210px;
+    max-width: calc(100dvw - 22px);
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    background: var(--fn-cake) !important;
+    border: 1px solid var(--fn-line-2) !important;
+    border-radius: var(--fn-r-l) !important;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .55) !important;
+    padding: 8px !important;
+    z-index: 3200 !important;
+}
+:root[data-foret] #options .options-content a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px !important;
+    border-radius: var(--fn-r-s);
+    color: var(--fn-cream) !important;
+    font-size: 14px;
+}
+:root[data-foret] #options .options-content a:hover {
+    background: var(--fn-cherry-jam) !important;
+    color: var(--fn-cherry-soft) !important;
+}
+:root[data-foret] #options .options-content a i { color: var(--fn-caramel); width: 18px; text-align: center; }
+
+/* ② 玩家訊息：頭貼換到右邊 */
+:root[data-foret] #chat .mes[is_user='true'] {
+    flex-direction: row-reverse !important;
+}
+:root[data-foret] #chat .mes[is_user='true'] .ch_name {
+    flex-direction: row-reverse;
+}
+/* 內文維持靠左——長句右對齊會造成參差不齊、難讀；
+   只有頭貼與名字列靠右，足以分辨說話者。 */
+:root[data-foret] #chat .mes[is_user='true'] .mes_buttons { justify-content: flex-start; }
+
+/* ③ 訊息幅寬拉到畫面邊緣（手機不再留中央欄的空白） */
+@media screen and (max-width: 1000px) {
+    :root[data-foret] #chat { padding-inline: 0 !important; }
+    :root[data-foret] #chat .mes { padding: 14px 12px !important; }
+}
+
+/* ④ 輸入框上緣圓角不被遮：祖先容器不得裁切 */
+:root[data-foret] #form_sheld,
+:root[data-foret] #send_form,
+:root[data-foret] #nonQRFormItems {
+    overflow: visible !important;
+}
+:root[data-foret] #send_textarea {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    position: relative;
+    z-index: 1;
+}

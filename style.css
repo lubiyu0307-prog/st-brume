@@ -16,8 +16,9 @@
      · .extension_block 的子元素不可用「> div」一律縮成方鈕——
        名稱常包在無 class 的 div 裡，會被壓成 34px 而截字
      · #rightSendForm 的情境按鈕（腳本播放／暫停／中止／繼續）由
-       ST 以 displayNone 收納——display 不可加 !important 蓋過，
-       否則整排常駐現形
+       ST 收納——主題「完全不可設定它們的 display」：ST 的隱藏規則
+       優先度很低，連不帶 !important 的 display:flex 都會蓋過它，
+       讓整排常駐現形。只能改尺寸與顏色。
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── 字體：粉圓體（jf open 粉圓，OFL）＋系統圓體退路 ────────── */
@@ -484,7 +485,8 @@
     flex: none;
     gap: 5px;
 }
-/* 左側主要動作：中型圓鈕 */
+/* 左側主要動作：中型圓鈕（墊高一層，避免被輸入框或快捷列的
+   盒子壓到收不到點擊） */
 :root[data-foret] #leftSendForm > div {
     width: 38px;
     height: 38px;
@@ -498,28 +500,34 @@
     color: var(--fn-caramel) !important;
     background: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line) !important;
+    position: relative;
+    z-index: 2;
     transition: background .18s, color .18s;
 }
 :root[data-foret] #leftSendForm > div:hover {
     background: var(--fn-cake-3) !important;
     color: var(--fn-cream) !important;
 }
-/* 右側次要動作：小一號、統一去色，跟送出鍵拉開層級
-   display 故意不加 !important——ST 用 displayNone 收納情境按鈕
-   （腳本播放／暫停／中止、繼續），蓋過它會讓整排常駐現形 */
+/* 右側情境按鈕：小一號、統一去色。
+   鐵律：完全不設定 display——ST 的收納規則優先度極低，
+   主題只要寫了 display（連不帶 !important 都算）就會把
+   整排藏起來的按鈕翻出來。置中改用 line-height 齊。 */
 :root[data-foret] #rightSendForm > div {
     width: 30px;
     height: 30px;
     border-radius: 50% !important;
-    display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    line-height: 30px;
     padding: 0 !important;
     font-size: 12px !important;
     flex: none;
     color: var(--fn-cocoa) !important;
     background: rgba(67, 45, 38, .55) !important;
     border: none !important;
+    position: relative;
+    z-index: 2;
     transition: color .18s, background .18s;
 }
 :root[data-foret] #rightSendForm > div i {
@@ -527,6 +535,7 @@
     height: auto;
     padding: 0 !important;
     font-size: 12px !important;
+    line-height: inherit;
     background: transparent !important;
     border: none !important;
 }
@@ -534,12 +543,13 @@
 /* ST 收起來的按鈕就讓它收著（displayNone 優先於一切） */
 :root[data-foret] #rightSendForm > div.displayNone,
 :root[data-foret] #leftSendForm > div.displayNone { display: none !important; }
-/* 送出＝那顆櫻桃：明顯大一號、實心 */
+/* 送出＝那顆櫻桃：明顯大一號、實心（display 同樣不碰） */
 :root[data-foret] #rightSendForm > #send_but,
 :root[data-foret] #rightSendForm > #send_but i {
     width: 42px !important;
     height: 42px !important;
     font-size: 16px !important;
+    line-height: 42px;
     background: var(--fn-cherry) !important;
     color: var(--fn-on-cherry) !important;
     border: none !important;
@@ -548,6 +558,7 @@
 :root[data-foret] #rightSendForm > #send_but i {
     width: auto !important;
     height: auto !important;
+    line-height: inherit;
     background: transparent !important;
     box-shadow: none;
 }
@@ -629,18 +640,18 @@
     border-color: var(--fn-cherry) !important;
 }
 
-/* 窄螢幕：按鈕再小一號，仍維持一排 */
+/* 窄螢幕：左側按鈕再小一號（送出鍵與情境按鈕由 700px 版面接手） */
 @media screen and (max-width: 430px) {
     :root[data-foret] #leftSendForm > div { width: 36px; height: 36px; }
-    :root[data-foret] #rightSendForm > div { width: 28px; height: 28px; font-size: 11px !important; }
-    :root[data-foret] #rightSendForm > #send_but,
-    :root[data-foret] #rightSendForm > #send_but i { width: 40px !important; height: 40px !important; }
     :root[data-foret] #send_textarea { padding: 9px 14px !important; }
 }
 
-/* 手機：輸入框整寬一排，下排＝[☰][✨][快捷字符條][➤]
-   nonQRFormItems 用 display:contents 攤平，快捷列才擠得進同一排——
-   情境按鈕收回去之後，這排空間正好給快捷字符用，聊天區多出一整列。
+/* 手機版面：
+   第一排＝[ ——— 輸入框（小飛機做在欄位右端內）——— ]
+   第二排＝[☰][✨][快捷字符條——橫向捲動]
+   nonQRFormItems 與 rightSendForm 都用 display:contents 攤平，
+   小飛機才能擠進輸入框那一排；情境按鈕（腳本控制／中止）交還
+   ST 收納，出現時排在第二排尾端。
    （桌面空間足夠，維持原版面。） */
 @media screen and (max-width: 700px) {
     :root[data-foret] #send_form {
@@ -649,12 +660,33 @@
         align-items: center;
         gap: 6px 7px;
     }
-    :root[data-foret] #nonQRFormItems { display: contents !important; }
+    :root[data-foret] #nonQRFormItems,
+    :root[data-foret] #rightSendForm { display: contents !important; }
+    /* 第一排：輸入框整寬，右端內側留給小飛機 */
     :root[data-foret] #send_textarea {
         flex: 1 0 100% !important;
-        order: -1;
+        order: -2;
+        padding-right: 48px !important;
     }
-    :root[data-foret] #leftSendForm { order: 1; }
+    /* 小飛機：負邊距疊進輸入框右端，多行輸入時貼底（iMessage 式）。
+       淨佔寬必須 ≤0（gap7 − 52 + 36 + 8 = −1）才不會把自己
+       擠到下一排。 */
+    :root[data-foret] #rightSendForm > #send_but {
+        order: -1;
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 14px !important;
+        line-height: 36px;
+        margin: 0 8px 4px -52px !important;
+        align-self: flex-end;
+        z-index: 2;
+        box-shadow: none;
+    }
+    /* 第二排：☰ ✨ ＋ 快捷字符條；情境按鈕現形時排最後 */
+    :root[data-foret] #leftSendForm {
+        order: 1;
+        display: flex !important;
+    }
     :root[data-foret] #qr--bar {
         order: 2;
         flex: 1 1 0 !important;
@@ -663,16 +695,22 @@
         padding: 0 !important;
         margin: 0 !important;
     }
-    :root[data-foret] #rightSendForm {
-        order: 3;
-        margin-left: auto;
-        flex-wrap: nowrap !important;
-    }
+    :root[data-foret] #rightSendForm > div { order: 3; }
     /* 快捷字符鈕縮小一號，塞進控制列不搶高度 */
     :root[data-foret] .qr--button {
         font-size: 11px !important;
         padding: 4px 9px !important;
         min-height: 26px !important;
+    }
+    /* ☰ 選單改從底部彈出——選單原本固定在畫面右上，從底部的
+       ☰ 點開會以為沒反應 */
+    :root[data-foret] #options .options-content {
+        top: auto !important;
+        left: 11px !important;
+        right: 11px !important;
+        bottom: max(env(safe-area-inset-bottom), 10px) !important;
+        max-height: min(62dvh, 480px) !important;
+        z-index: 3300 !important;
     }
 }
 

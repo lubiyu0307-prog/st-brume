@@ -783,9 +783,9 @@
         width: 100% !important;
         max-width: 100% !important;
     }
-    /* 面板一律貼齊螢幕（蓋掉 MovingUI 寫死的寬度與位移） */
-    :root[data-foret] .drawer-content,
-    :root[data-foret] #WorldInfo {
+    /* 面板寬度蓋章（MovingUI 會寫死寬度／位移）——實際版面見下方浮起卡片 */
+    :root[data-foret] .drawer-content:not(.openDrawer),
+    :root[data-foret] #WorldInfo:not(.openDrawer) {
         width: 100dvw !important;
         max-width: 100dvw !important;
         min-width: 0 !important;
@@ -793,7 +793,6 @@
         right: auto !important;
         margin-inline: 0 !important;
         transform: none !important;
-        overflow-x: clip !important;
     }
     :root[data-foret] #wi-holder,
     :root[data-foret] #world_popup {
@@ -852,4 +851,137 @@
         justify-content: flex-end;
     }
     :root[data-foret] #rightSendForm::-webkit-scrollbar { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   浮起的圓角托盤（v2.1）
+   所有面板——世界書、設定、角色、擴充——一律改成置中浮起的
+   大圓角卡片，背後壓一層可可色薄紗。與 ST 原生彈窗同一種語彙。
+   鐵律不變：#top-settings-holder 仍為 overflow:visible，
+   這裡只改面板自己的定位與外觀。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 薄紗：任何面板開啟時墊在後面 */
+:root[data-foret] body:has(.drawer-content.openDrawer)::after,
+:root[data-foret] body:has(#character_popup.open)::after,
+:root[data-foret] body:has(#world_popup.open)::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    width: 100dvw;
+    height: 100dvh;
+    z-index: 2990;
+    background: rgba(18, 10, 8, 0.66);
+    pointer-events: none;
+}
+
+/* 面板本體：置中浮起的圓角托盤 */
+:root[data-foret] .drawer-content.openDrawer,
+:root[data-foret] #character_popup.open {
+    /* 註：ST 在 <html> 掛 perspective，固定元素的百分比高度基準會變成
+       0 高的盒子——top:50% 會算成 0。改用視窗單位（dvh）錨定，不用置中百分比。 */
+    position: fixed !important;
+    top: 56px !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(600px, calc(100dvw - 22px)) !important;
+    max-width: calc(100dvw - 22px) !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: calc(100dvh - 112px) !important;
+    margin: 0 !important;
+    padding: 16px 14px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: var(--fn-cake) !important;
+    border: 1px solid var(--fn-line-2) !important;
+    border-radius: 26px !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, .6), 0 0 0 1px rgba(0, 0, 0, .3);
+    z-index: 3050 !important;
+    -webkit-overflow-scrolling: touch;
+}
+/* 左右側欄面板同樣改托盤（不再貼邊全屏） */
+:root[data-foret] .fillLeft.openDrawer,
+:root[data-foret] .fillRight.openDrawer {
+    width: min(600px, calc(100dvw - 22px)) !important;
+    height: auto !important;
+    max-height: calc(100dvh - 90px) !important;
+}
+/* 托盤內部：ST 的內捲容器讓給托盤自己捲 */
+:root[data-foret] .drawer-content.openDrawer .scrollableInner {
+    overflow: visible !important;
+    max-height: none !important;
+}
+/* 托盤頂部的拖曳握把：改成甜點盤的提示線 */
+:root[data-foret] .drawer-content .drag-grabber {
+    color: var(--fn-cocoa);
+    opacity: .6;
+}
+
+/* 托盤內每一列＝一片巧克力：圓角、細邊、hover 亮起 */
+:root[data-foret] .drawer-content.openDrawer .inline-drawer,
+:root[data-foret] #extensions_settings .inline-drawer,
+:root[data-foret] #extensions_settings2 .inline-drawer {
+    border-radius: var(--fn-r-m);
+    margin-bottom: 7px;
+}
+:root[data-foret] .extension_block,
+:root[data-foret] .extensions_block > div[class*='extension'],
+:root[data-foret] #rm_print_characters_block > div,
+:root[data-foret] #world_popup_entries_list > .world_entry {
+    border-radius: var(--fn-r-m) !important;
+}
+/* 擴充管理清單的每一列（使用者截圖裡喜歡的那種列） */
+:root[data-foret] .extension_block {
+    background: var(--fn-cake-2) !important;
+    border: 1px solid var(--fn-line) !important;
+    padding: 9px 12px !important;
+    margin-bottom: 7px;
+    transition: border-color .18s, background .18s;
+}
+:root[data-foret] .extension_block:hover {
+    background: var(--fn-cake-3) !important;
+    border-color: var(--fn-cherry) !important;
+}
+:root[data-foret] .extension_block .extension_name,
+:root[data-foret] .extension_block a { color: var(--fn-cherry-soft) !important; }
+:root[data-foret] .extension_block .fa-solid,
+:root[data-foret] .extension_block .fa-brands {
+    color: var(--fn-caramel);
+}
+/* 托盤底部的關閉鍵：奶油描邊的圓角鈕 */
+:root[data-foret] .popup-button-close,
+:root[data-foret] .popup .menu_button {
+    border-radius: 999px !important;
+    border: 1px solid var(--fn-line-cream) !important;
+    padding: 7px 22px !important;
+}
+:root[data-foret] .popup-button-ok {
+    background: var(--fn-cherry) !important;
+    border-color: var(--fn-cherry) !important;
+    color: var(--fn-on-cherry) !important;
+}
+
+/* 世界書托盤內：條目卡片再明確一點 */
+:root[data-foret] #world_popup_entries_list { padding: 2px; }
+:root[data-foret] .world_entry {
+    padding: 10px 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+}
+
+/* 桌面：托盤稍寬，仍是浮起卡片 */
+@media screen and (min-width: 1000px) {
+    :root[data-foret] .drawer-content.openDrawer,
+    :root[data-foret] #character_popup.open {
+        width: min(820px, calc(100vw - 80px)) !important;
+        max-width: calc(100vw - 80px) !important;
+        max-height: calc(100vh - 140px) !important;
+        top: 64px !important;
+        padding: 20px 18px !important;
+    }
 }

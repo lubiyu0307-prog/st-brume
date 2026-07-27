@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.2.0';
+    const VERSION = '3.2.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題

@@ -581,7 +581,12 @@
     position: relative;
     z-index: 1;
 }
-:root[data-foret] #send_textarea::placeholder { color: var(--fn-cocoa); }
+/* 提示文字也要靠左——ST 對 ::placeholder 另外下了置中，
+   只改 textarea 本身蓋不到它 */
+:root[data-foret] #send_textarea::placeholder {
+    color: var(--fn-cocoa);
+    text-align: left !important;
+}
 :root[data-foret] #send_textarea:focus { border-color: var(--fn-cherry) !important; }
 /* 輸入框上緣圓角不被遮：祖先容器不得裁切 */
 :root[data-foret] #form_sheld,
@@ -668,19 +673,24 @@
         order: -2;
         padding-right: 48px !important;
     }
-    /* 小飛機：負邊距疊進輸入框右端，多行輸入時貼底（iMessage 式）。
-       淨佔寬必須 ≤0（gap7 − 52 + 36 + 8 = −1）才不會把自己
+    /* 小飛機：負邊距疊進輸入框右端。34px＋右內縮 10px＋底距 5px
+       ——單行時剛好垂直置中，多行輸入時貼底（iMessage 式）。
+       淨佔寬必須 <0（gap7 − 52 + 34 + 10 = −1）才不會把自己
        擠到下一排。 */
     :root[data-foret] #rightSendForm > #send_but {
         order: -1;
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 14px !important;
-        line-height: 36px;
-        margin: 0 8px 4px -52px !important;
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 13px !important;
+        line-height: 34px;
+        margin: 0 10px 5px -52px !important;
         align-self: flex-end;
         z-index: 2;
         box-shadow: none;
+    }
+    :root[data-foret] #rightSendForm > #send_but i {
+        font-size: 13px !important;
+        line-height: inherit;
     }
     /* 第二排：☰ ✨ ＋ 快捷字符條；情境按鈕現形時排最後 */
     :root[data-foret] #leftSendForm {

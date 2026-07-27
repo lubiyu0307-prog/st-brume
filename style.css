@@ -352,12 +352,16 @@
 :root[data-foret] .mes_reasoning_header_title { font-size: 12.5px; color: var(--fn-caramel); }
 :root[data-foret] .mes_reasoning { color: var(--fn-cocoa); font-size: 13px; }
 
-/* ═══ 輸入區：托盤上的餐具 ═══════════════════════════════════ */
+/* ═══ 輸入區：一列到底的托盤 ═════════════════════════════════
+   版面固定為：[☰][✨] [ ——— 輸入框 ——— ] [➤]
+   次要按鈕（腳本控制／分身／繼續／中止）只在 ST 顯示它們時出現，
+   一律縮小、去色、排在送出鍵左側，不搶視覺、不換行、不佔整排。
+   快速回覆列改單排橫向捲動——不再堆成兩三排。 */
 :root[data-foret] #form_sheld {
     position: relative;
     padding: 0 10px max(env(safe-area-inset-bottom), 8px);
     box-sizing: border-box;
-    background: linear-gradient(180deg, transparent, var(--fn-base-2) 42%);
+    background: linear-gradient(180deg, transparent, var(--fn-base-2) 46%);
 }
 :root[data-foret] #send_form {
     background: transparent !important;
@@ -370,11 +374,13 @@
     padding: 0 !important;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
 }
+/* 主列：永遠一排 */
 :root[data-foret] #nonQRFormItems {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center;
     gap: 7px;
     width: 100%;
@@ -389,10 +395,10 @@
     width: auto !important;
     height: auto !important;
     flex: none;
-    gap: 6px;
+    gap: 5px;
 }
-:root[data-foret] #leftSendForm > div,
-:root[data-foret] #rightSendForm > div {
+/* 左側主要動作：中型圓鈕 */
+:root[data-foret] #leftSendForm > div {
     width: 38px;
     height: 38px;
     border-radius: 50% !important;
@@ -407,21 +413,49 @@
     border: 1px solid var(--fn-line) !important;
     transition: background .18s, color .18s;
 }
-:root[data-foret] #leftSendForm > div:hover,
-:root[data-foret] #rightSendForm > div:hover {
+:root[data-foret] #leftSendForm > div:hover {
     background: var(--fn-cake-3) !important;
     color: var(--fn-cream) !important;
 }
-/* 送出＝那顆櫻桃 */
+/* 右側次要動作：小一號、統一去色，不再是彩色圓餅 */
+:root[data-foret] #rightSendForm > div,
+:root[data-foret] #rightSendForm > div i {
+    width: 32px;
+    height: 32px;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    font-size: 13px !important;
+    flex: none;
+    color: var(--fn-cocoa) !important;
+    background: transparent !important;
+    border: none !important;
+    transition: color .18s, background .18s;
+}
+:root[data-foret] #rightSendForm > div { background: var(--fn-cake-2) !important; }
+:root[data-foret] #rightSendForm > div i { width: auto; height: auto; background: transparent !important; }
+:root[data-foret] #rightSendForm > div:hover { color: var(--fn-cream) !important; background: var(--fn-cake-3) !important; }
+/* 送出＝那顆櫻桃：明顯大一號、實心 */
 :root[data-foret] #rightSendForm > #send_but,
 :root[data-foret] #rightSendForm > #send_but i {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 16px !important;
     background: var(--fn-cherry) !important;
     color: var(--fn-on-cherry) !important;
-    border-color: var(--fn-cherry) !important;
+    border: none !important;
+    box-shadow: 0 2px 10px rgba(200, 70, 90, .35);
 }
-:root[data-foret] #rightSendForm > #send_but:hover {
-    background: var(--fn-cherry-deep) !important;
+:root[data-foret] #rightSendForm > #send_but i {
+    width: auto !important;
+    height: auto !important;
+    background: transparent !important;
+    box-shadow: none;
 }
+:root[data-foret] #rightSendForm > #send_but:hover { background: var(--fn-cherry-deep) !important; }
+/* 輸入框：吃掉所有剩餘空間 */
 :root[data-foret] #send_textarea {
     background: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line) !important;
@@ -436,26 +470,33 @@
 :root[data-foret] #send_textarea::placeholder { color: var(--fn-cocoa); }
 :root[data-foret] #send_textarea:focus { border-color: var(--fn-cherry) !important; }
 
-/* 快速回覆：小餅乾 */
+/* 快速回覆：單排橫向捲動的小餅乾，不再堆成多排 */
 :root[data-foret] #qr--bar {
     display: flex !important;
     flex-direction: row !important;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    padding: 0 0 4px;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0 5px;
     background: transparent !important;
     box-shadow: none !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
+:root[data-foret] #qr--bar::-webkit-scrollbar { display: none; }
 :root[data-foret] .qr--button {
     background: var(--fn-cake) !important;
     border: 1px solid var(--fn-line) !important;
     border-radius: 999px !important;
     color: var(--fn-caramel) !important;
     font-size: 12.5px !important;
-    padding: 4px 12px !important;
+    padding: 5px 13px !important;
     width: auto !important;
     flex: none !important;
+    white-space: nowrap;
     box-shadow: none !important;
 }
 :root[data-foret] .qr--button:hover {
@@ -464,14 +505,13 @@
     border-color: var(--fn-cherry) !important;
 }
 
-/* 窄螢幕：輸入框獨佔一行、按鈕排下一行，永不被截 */
-@media screen and (max-width: 600px) {
-    :root[data-foret] #nonQRFormItems { flex-wrap: wrap !important; row-gap: 7px; }
-    :root[data-foret] #send_textarea { flex: 1 0 100% !important; order: -1; }
-    :root[data-foret] #leftSendForm { order: 1; }
-    :root[data-foret] #rightSendForm { order: 2; margin-left: auto; flex-wrap: wrap !important; justify-content: flex-end; row-gap: 6px; }
-    :root[data-foret] #leftSendForm > div,
-    :root[data-foret] #rightSendForm > div { width: 36px; height: 36px; }
+/* 窄螢幕：按鈕再小一號，仍維持一排 */
+@media screen and (max-width: 430px) {
+    :root[data-foret] #leftSendForm > div { width: 36px; height: 36px; }
+    :root[data-foret] #rightSendForm > div { width: 30px; height: 30px; font-size: 12px !important; }
+    :root[data-foret] #rightSendForm > #send_but,
+    :root[data-foret] #rightSendForm > #send_but i { width: 40px !important; height: 40px !important; }
+    :root[data-foret] #send_textarea { padding: 9px 14px !important; }
 }
 
 /* ═══ 面板：一片一片的蛋糕盤 ═══════════════════════════════ */
@@ -773,4 +813,29 @@
     background-repeat: repeat-x;
     background-size: 26px 8px;
     opacity: .38;
+}
+
+/* 手機：輸入框獨佔上排、控制列在下排——次要按鈕再多也不擠壓輸入框
+   （桌面空間足夠，維持單排）。 */
+@media screen and (max-width: 700px) {
+    :root[data-foret] #nonQRFormItems {
+        flex-wrap: wrap !important;
+        row-gap: 8px;
+    }
+    :root[data-foret] #send_textarea {
+        flex: 1 0 100% !important;
+        order: -1;
+    }
+    :root[data-foret] #leftSendForm { order: 1; }
+    :root[data-foret] #rightSendForm {
+        order: 2;
+        margin-left: auto;
+        flex-wrap: nowrap !important;
+        max-width: calc(100% - 96px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        justify-content: flex-end;
+    }
+    :root[data-foret] #rightSendForm::-webkit-scrollbar { display: none; }
 }

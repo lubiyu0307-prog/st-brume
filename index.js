@@ -12,7 +12,7 @@
 
     const MODULE = 'st_brume';
     const LS_KEY = 'st_brume_settings';
-    const VERSION = '1.2.1';
+    const VERSION = '1.2.2';
 
     const DEFAULTS = Object.freeze({
         theme: 'aurora',     // aurora | aquarium | night
@@ -22,7 +22,7 @@
         blur: true,          // 玻璃模糊（手機發熱可關）
         motion: true,        // 背景動畫
         narrow: false,       // 手機窄版（聊天欄收成置中窄欄）
-        immersive: false,    // 沉浸模式：收起工具列，改用 Brume 式角色頭部
+        immersive: true,     // 沉浸模式：收起工具列，改用 Brume 式角色頭部
     });
 
     const THEMES = [
@@ -62,6 +62,13 @@
     }
 
     let settings = loadSettings();
+
+    // v1.2.2 一次性遷移：沉浸模式改為預設；舊安裝自動開啟一次
+    // （之後使用者自行關閉會被尊重，不再覆寫）
+    if (!settings._immersiveDefaulted) {
+        settings.immersive = true;
+        settings._immersiveDefaulted = true;
+    }
 
     function saveSettings() {
         const ctx = getContext();

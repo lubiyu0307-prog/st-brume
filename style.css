@@ -1272,3 +1272,27 @@
     align-items: center;
 }
 :root[data-brume-immersive='on'] #qr--bar > * { width: auto !important; flex: none !important; }
+
+/* ═══ 沉浸模式：聊天區滿版（v1.2.2）══════════════════════════
+   ST 桌面預設只用視窗一半寬（--sheldWidth），兩側露出背景圖。
+   沉浸模式拉滿版；左右功能面板改為疊在聊天之上，
+   仍保留 ST 原生的邊緣拖曳調寬（resize handle 不動）。 */
+:root[data-brume-immersive='on'] #sheld {
+    width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+}
+/* 聊天內容置中收窄（滿版底、內容仍好讀），寬度隨螢幕自適應 */
+:root[data-brume-immersive='on'] #chat {
+    padding-inline: max(0px, calc((100% - 900px) / 2));
+}
+/* 側邊面板疊在聊天之上、保持可拖曳調寬 */
+:root[data-brume-immersive='on'] .fillLeft,
+:root[data-brume-immersive='on'] .fillRight {
+    z-index: 3100;
+    box-shadow: 0 0 40px rgba(0, 0, 0, .45);
+    resize: horizontal;
+    overflow: auto;
+}

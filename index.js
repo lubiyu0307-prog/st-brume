@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.5.0';
+    const VERSION = '3.5.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -171,6 +171,34 @@
         }
     }
 
+    // ── 擴充管理彈窗：內容容器寬度矯正 ─────────────────────────
+    // 病根：主題把彈窗撐寬後，ST 在開窗時寫進內容容器的「行內
+    // 像素寬度」還是舊值，清單擠在左側、操作鈕被裁。CSS 蓋不到
+    // 行內樣式的具體數值，所以由 JS 沿著擴充列往上走到彈窗為止，
+    // 把每層容器的寬度以 inline !important 強制改回 auto。
+    function fixExtensionsPopupLayout() {
+        const rows = document.querySelectorAll('.extension_block');
+        if (!rows.length) return;
+        const seen = new Set();
+        for (const row of rows) {
+            let el = row.parentElement;
+            let hops = 0;
+            while (el && hops < 10 && el.tagName !== 'DIALOG' && el.tagName !== 'BODY'
+                   && !el.classList.contains('popup')) {
+                if (!seen.has(el)) {
+                    seen.add(el);
+                    el.style.setProperty('width', 'auto', 'important');
+                    el.style.setProperty('max-width', '100%', 'important');
+                    el.style.setProperty('min-width', '0', 'important');
+                    el.style.setProperty('margin-left', '0', 'important');
+                    el.style.setProperty('margin-right', '0', 'important');
+                }
+                el = el.parentElement;
+                hops++;
+            }
+        }
+    }
+
     // ── 角色頭部 ───────────────────────────────────────────────
     function buildHeader() {
         if (document.getElementById('foret-header')) return;
@@ -229,10 +257,13 @@
             }
         } catch (_) { }
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
-        setInterval(() => { detectBackground(); tradifyMenus(); }, 3000);
-        // 選單是點擊後才生成內容的——任何點擊後補轉一次繁體
-        //（capture 階段掛，stopPropagation 也擋不掉；替換具冪等性）
-        document.addEventListener('click', () => setTimeout(tradifyMenus, 80), true);
+        setInterval(() => { detectBackground(); tradifyMenus(); fixExtensionsPopupLayout(); }, 3000);
+        // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
+        //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
+        document.addEventListener('click', () => setTimeout(() => {
+            tradifyMenus();
+            fixExtensionsPopupLayout();
+        }, 120), true);
     }
 
     // ── 設定面板 ───────────────────────────────────────────────

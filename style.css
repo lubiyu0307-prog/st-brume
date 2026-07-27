@@ -905,7 +905,11 @@
 :root[data-foret] .popup::backdrop { background: rgba(15, 8, 6, .66); }
 :root[data-foret] .popup h3,
 :root[data-foret] .popup h4 { line-height: 1.35; }
-:root[data-foret] .popup-content { min-width: 0; }
+:root[data-foret] .popup-content {
+    min-width: 0;
+    width: auto !important;
+    max-width: 100% !important;
+}
 :root[data-foret] #toast-container > div {
     background-color: var(--fn-cake-2) !important;
     border: 1px solid var(--fn-line-2) !important;

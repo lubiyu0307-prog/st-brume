@@ -12,13 +12,14 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.7.0';
+    const VERSION = '3.8.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
         immersive: true,    // 沉浸模式：收起工具列，改用角色頭部
         texture: true,      // 巧克力屑底紋（沒有背景圖時）
         compact: false,     // 緊湊行距
+        diag: false,        // 空回診斷（預設關；唯讀觀察，不改請求／回應）
     });
 
     function getContext() {
@@ -169,6 +170,248 @@
                 if (t !== node.nodeValue) node.nodeValue = t;
             }
         }
+    }
+
+    // ── 空回診斷 ───────────────────────────────────────────────
+    // 為什麼需要：ST 的 onError 只在後端丟出 error 物件時才提示
+    //（script.js 的 onError 只看 exception.error.message）。但空回最常見
+    // 的情況是 HTTP 200、請求成功、內容卻是空的——被安全過濾擋掉、
+    // token 全花在思考上、或模型直接停住。那時 ST 沒有任何錯誤可報，
+    // 只會把佔位訊息刪掉，使用者什麼線索都沒有。
+    // 這些線索其實都在回應裡（finish_reason／blockReason／safetyRatings
+    // ／usage），這裡把它們撈出來顯示。
+    // 原則：只讀 response.clone()，絕不改請求或回應；分析在背景進行，
+    // 不阻塞串流；自身任何例外都吞掉，絕不影響生成。
+    const GEN_URLS = [
+        '/api/backends/chat-completions/generate',
+        '/api/backends/text-completions/generate',
+        '/api/backends/kobold/generate',
+        '/api/backends/koboldhorde/generate',
+        '/api/novelai/generate',
+    ];
+
+    function newAcc() {
+        return { len: 0, finish: new Set(), block: new Set(), safety: new Set(), err: new Set(), usage: {} };
+    }
+
+    // 從一段回應 JSON 收集線索。涵蓋 OpenAI／Claude／Gemini／Kobold
+    // ／NovelAI／text-completions 六種形狀，抓不到的欄位就跳過。
+    function collect(d, acc) {
+        if (!d || typeof d !== 'object') return;
+        const texts = [];
+        try {
+            if (Array.isArray(d.choices)) {
+                for (const c of d.choices) {
+                    const mc = c && c.message && c.message.content;
+                    if (typeof mc === 'string') texts.push(mc);
+                    if (Array.isArray(mc)) for (const p of mc) if (p && typeof p.text === 'string') texts.push(p.text);
+                    if (typeof (c && c.text) === 'string') texts.push(c.text);
+                    if (typeof (c && c.delta && c.delta.content) === 'string') texts.push(c.delta.content);
+                    if (c && c.finish_reason) acc.finish.add(String(c.finish_reason));
+                    if (c && c.finish_details && c.finish_details.type) acc.finish.add(String(c.finish_details.type));
+                }
+            }
+            if (Array.isArray(d.content)) for (const p of d.content) if (p && typeof p.text === 'string') texts.push(p.text);
+            if (d.delta && typeof d.delta.text === 'string') texts.push(d.delta.text);
+            if (d.stop_reason) acc.finish.add(String(d.stop_reason));
+
+            if (Array.isArray(d.candidates)) {
+                for (const c of d.candidates) {
+                    if (c && c.finishReason) acc.finish.add(String(c.finishReason));
+                    const parts = c && c.content && c.content.parts;
+                    // thought:true 的段落是思考內容，不算正式輸出
+                    if (Array.isArray(parts)) for (const p of parts) {
+                        if (p && typeof p.text === 'string' && !p.thought) texts.push(p.text);
+                    }
+                    if (Array.isArray(c && c.safetyRatings)) {
+                        for (const r of c.safetyRatings) {
+                            if (r && (r.blocked || ['HIGH', 'MEDIUM'].includes(r.probability))) {
+                                acc.safety.add(String(r.category || '').replace('HARM_CATEGORY_', '')
+                                    + '：' + (r.blocked ? '已阻擋' : r.probability));
+                            }
+                        }
+                    }
+                }
+            }
+            if (d.promptFeedback && d.promptFeedback.blockReason) acc.block.add(String(d.promptFeedback.blockReason));
+
+            if (Array.isArray(d.results)) {
+                for (const r of d.results) {
+                    if (r && typeof r.text === 'string') texts.push(r.text);
+                    if (r && r.finish_reason) acc.finish.add(String(r.finish_reason));
+                }
+            }
+            if (typeof d.text === 'string') texts.push(d.text);
+            if (Array.isArray(d.generations)) for (const g of d.generations) if (g && typeof g.text === 'string') texts.push(g.text);
+
+            const u = d.usage || d.usageMetadata;
+            if (u) {
+                const pick = (...v) => v.find(x => typeof x === 'number');
+                const p = pick(u.prompt_tokens, u.input_tokens, u.promptTokenCount);
+                const o = pick(u.completion_tokens, u.output_tokens, u.candidatesTokenCount);
+                const t = pick(u.completion_tokens_details && u.completion_tokens_details.reasoning_tokens,
+                               u.thoughtsTokenCount);
+                if (p !== undefined) acc.usage.prompt = p;
+                if (o !== undefined) acc.usage.out = o;
+                if (t !== undefined) acc.usage.think = t;
+            }
+
+            const e = d.error;
+            if (e) {
+                acc.err.add(typeof e === 'string' ? e
+                    : [e.code, e.type, e.message].filter(Boolean).join(' · ') || JSON.stringify(e).slice(0, 300));
+            }
+            if (!d.error && typeof d.message === 'string' && d.message && !texts.length && d.message.length < 400) {
+                acc.err.add(d.message);
+            }
+        } catch (_) { }
+        for (const t of texts) if (t) acc.len += t.length;
+    }
+
+    // 串流是 SSE：逐行取出 data: 後面的 JSON 丟進同一個收集器
+    async function readSSE(res, acc) {
+        const reader = res.body && res.body.getReader ? res.body.getReader() : null;
+        if (!reader) return;
+        const dec = new TextDecoder();
+        let buf = '';
+        let seen = 0;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            seen += value ? value.length : 0;
+            if (seen > 8 * 1024 * 1024) { try { reader.cancel(); } catch (_) { } break; }
+            buf += dec.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop() || '';
+            for (const line of lines) {
+                const s = line.trim();
+                if (!s.startsWith('data:')) continue;
+                const payload = s.slice(5).trim();
+                if (!payload || payload === '[DONE]') continue;
+                try { collect(JSON.parse(payload), acc); } catch (_) { }
+            }
+        }
+    }
+
+    const FINISH_HINT = {
+        length: ['長度上限用完', '回覆的 token 上限在還沒寫出內容前就用光了。若有開思考／推理，多半是全花在思考上——調高回覆長度上限，或把思考預算調低。'],
+        max_tokens: ['長度上限用完', '回覆的 token 上限用光了。調高回覆長度上限。'],
+        MAX_TOKENS: ['長度上限用完', '回覆的 token 上限用光了；有開思考的話通常是被思考吃掉。調高上限或降低思考預算。'],
+        content_filter: ['被內容過濾擋下', '供應商的安全過濾攔截了這次回覆。改寫最後一則訊息，或換一個沒有這道過濾的模型。'],
+        SAFETY: ['被安全過濾擋下', 'Gemini 的安全評分判定超標。可在該模型的安全設定放寬門檻，或改寫觸發的段落。'],
+        RECITATION: ['疑似複述受版權保護的內容', '模型判定輸出過於接近訓練資料原文而中止。改寫提示或提高溫度通常可解。'],
+        PROHIBITED_CONTENT: ['內容被供應商禁止', '這次的請求觸及供應商的禁止類別，回覆在產生前就被擋下。'],
+        BLOCKLIST: ['命中封鎖字詞清單', '提示或回覆包含供應商封鎖清單裡的字詞。'],
+        OTHER: ['供應商未說明原因', '供應商回報中止但沒有給理由，通常仍是安全或系統面的攔截。'],
+        tool_calls: ['只呼叫了工具、沒有輸出文字', '模型這回合只發出工具呼叫。若你沒有要用工具，檢查是否誤啟用了函式呼叫。'],
+        function_call: ['只呼叫了函式、沒有輸出文字', '模型這回合只發出函式呼叫，沒有產生正文。'],
+        stop: ['模型自己停住了', '模型判定「已經講完」但一個字都沒寫。多半是提示詞、前綴或停止序列（stop sequence）設定造成，檢查停止序列是不是太早被觸發。'],
+        end_turn: ['模型自己結束了回合', '沒有輸出任何內容就結束。檢查提示詞結構與停止序列。'],
+    };
+
+    function buildReport(info) {
+        const rows = [];
+        const add = (k, v) => { if (v !== undefined && v !== null && v !== '') rows.push([k, String(v)]); };
+        add('狀態', info.status === 0 ? '連線失敗（沒有收到回應）' : info.status + ' ' + (info.ok ? 'OK' : (info.statusText || '')));
+        const finish = Array.from(info.acc.finish);
+        add('結束原因', finish.join('、'));
+        add('阻擋原因', Array.from(info.acc.block).join('、'));
+        add('安全評分', Array.from(info.acc.safety).join('、'));
+        const u = info.acc.usage;
+        if (u.prompt !== undefined || u.out !== undefined || u.think !== undefined) {
+            const parts = [];
+            if (u.prompt !== undefined) parts.push('提示 ' + u.prompt);
+            if (u.think !== undefined) parts.push('思考 ' + u.think);
+            if (u.out !== undefined) parts.push('輸出 ' + u.out);
+            add('token', parts.join(' · '));
+        }
+        add('錯誤訊息', Array.from(info.acc.err).join(' / '));
+        add('端點', info.url);
+
+        // 挑一個最能解釋的原因當標題
+        let hint = null;
+        for (const b of info.acc.block) if (FINISH_HINT[b]) { hint = FINISH_HINT[b]; break; }
+        if (!hint) for (const f of finish) if (FINISH_HINT[f]) { hint = FINISH_HINT[f]; break; }
+        if (!hint && info.acc.block.size) hint = ['被供應商阻擋', '阻擋原因：' + Array.from(info.acc.block).join('、')];
+        if (!hint && !info.ok) hint = ['請求沒有成功', '後端回了 ' + info.status + '。詳細見下方錯誤訊息。'];
+        if (!hint && info.status === 0) hint = ['連不到後端', '請求沒有送達或被中斷，檢查網路與 API 設定。'];
+        if (!hint) hint = ['回覆是空的，但供應商沒說原因', '請求成功、也沒有結束原因或錯誤——通常是代理／中轉服務吞掉了內容。可以把下面這份資料複製給我。'];
+        return { title: hint[0], desc: hint[1], rows };
+    }
+
+    function showDiag(info) {
+        try {
+            const old = document.getElementById('foret-diag');
+            if (old) old.remove();
+            const r = buildReport(info);
+            const box = document.createElement('div');
+            box.id = 'foret-diag';
+            const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            box.innerHTML =
+                '<div class="fd-head">' +
+                '  <span class="fd-dot"></span>' +
+                '  <span class="fd-title">' + esc(r.title) + '</span>' +
+                '  <button type="button" class="fd-x" title="關閉">✕</button>' +
+                '</div>' +
+                '<div class="fd-desc">' + esc(r.desc) + '</div>' +
+                '<dl class="fd-rows">' +
+                r.rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('') +
+                '</dl>' +
+                '<div class="fd-acts"><button type="button" class="fd-copy">複製診斷</button></div>';
+            document.body.appendChild(box);
+            box.querySelector('.fd-x').addEventListener('click', () => box.remove());
+            box.querySelector('.fd-copy').addEventListener('click', (e) => {
+                const txt = '【黑森林空回診斷】' + r.title + '\n' + r.desc + '\n'
+                    + r.rows.map(([k, v]) => k + '：' + v).join('\n');
+                const btn = e.currentTarget;
+                const done = () => { btn.textContent = '已複製'; setTimeout(() => { btn.textContent = '複製診斷'; }, 1500); };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(txt).then(done, done);
+                } else { done(); }
+            });
+        } catch (_) { }
+    }
+
+    function installDiagnostics() {
+        if (typeof window.fetch !== 'function' || window.__foretDiag) return;
+        window.__foretDiag = true;
+        const orig = window.fetch;
+        window.fetch = function (...args) {
+            let url = '';
+            try { url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || ''; } catch (_) { }
+            const watch = settings.diag && GEN_URLS.some(g => String(url).includes(g));
+            if (!watch) return orig.apply(this, args);
+
+            return orig.apply(this, args).then((res) => {
+                // 分析在背景跑，立刻把原始 response 還給 ST——不阻塞串流
+                try {
+                    const clone = res.clone();
+                    const acc = newAcc();
+                    const ct = (res.headers && res.headers.get('content-type')) || '';
+                    const finish = () => {
+                        if (acc.len > 0 && res.ok) return;   // 有內容就不打擾
+                        showDiag({ url: String(url), status: res.status, statusText: res.statusText, ok: res.ok, acc });
+                    };
+                    if (ct.includes('event-stream')) {
+                        readSSE(clone, acc).then(finish, finish);
+                    } else {
+                        clone.text().then((t) => {
+                            try { collect(JSON.parse(t), acc); }
+                            catch (_) { if (t && !res.ok) acc.err.add(t.slice(0, 300)); if (t && res.ok) acc.len += t.length; }
+                            finish();
+                        }, finish);
+                    }
+                } catch (_) { }
+                return res;
+            }, (e) => {
+                try {
+                    const acc = newAcc();
+                    acc.err.add((e && e.message) || String(e));
+                    showDiag({ url: String(url), status: 0, statusText: '', ok: false, acc });
+                } catch (_) { }
+                throw e;   // 一定要重新拋出，否則 ST 的錯誤處理會斷掉
+            });
+        };
     }
 
     // ── 日期分隔線 ─────────────────────────────────────────────
@@ -496,6 +739,8 @@
             checkboxRow('foret_immersive', '沉浸模式（收起工具列，改用角色頭部）', settings.immersive, '工具圖示列改由頭部的滑桿鈕點開，功能不減') +
             checkboxRow('foret_texture', '巧克力屑底紋', settings.texture, '設有背景圖時自動讓位') +
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
+            checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
+                '只讀取回應副本來顯示 finish_reason／安全阻擋／token 用量，不修改請求或回應') +
             '    </div>' +
             '  </div>' +
             '</div>';
@@ -512,12 +757,14 @@
         bind('foret_immersive', 'immersive');
         bind('foret_texture', 'texture');
         bind('foret_compact', 'compact');
+        bind('foret_diag', 'diag');
     }
 
     function init() {
         console.log('[Forêt-Noire] v' + VERSION);
         bustStyleCache();
         settings = loadSettings();
+        installDiagnostics();   // 只掛一次；實際是否分析由 settings.diag 決定
         buildHeader();
         hookEvents();
         apply();

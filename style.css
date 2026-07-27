@@ -1785,3 +1785,31 @@
    元件寫了 display，被藏起來的就會全部常駐現形。這條用重複 class
    拉高優先權，當作最後一道保險。 */
 :root[data-foret] .displayNone.displayNone.displayNone { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   桌面版對齊（v3.10）
+   病灶：訊息被收在中央 860px 的欄位裡，輸入區、快捷鍵、頭部卻是
+   整個視窗寬，三條中線各走各的，看起來散掉。
+   數字由來：#chat 欄寬 860px，.mes 左右各留 10px 內距，
+   所以真正的內容寬是 840px——輸入區與頭部都對到這個寬度。
+   斷點為什麼是 1001px 而不是 701px：≤1000px 時上面的規則已經把
+   #chat 的左右內距歸零、訊息本來就是滿版，這時候把輸入區收成
+   840px 反而會歪掉（實測 701～1000px 之間左緣差 20px）。
+   手機版（≤700px 的 Grid 版面）自然更不會進來。
+   ═══════════════════════════════════════════════════════════════ */
+@media screen and (min-width: 1001px) {
+    /* 輸入區（含快捷字符列）與訊息同一條中線 */
+    :root[data-foret] #send_form {
+        max-width: 840px !important;
+        margin: 0 auto 4px !important;
+    }
+    /* 頭部的頭貼與右側按鈕，切齊訊息欄的左右邊 */
+    :root[data-foret][data-foret-immersive='on'] #foret-header {
+        padding-inline: max(14px, calc((100% - 840px) / 2));
+    }
+    /* 圖示列：寬螢幕上 space-evenly 會把九顆圖示撒到兩端，改置中收攏 */
+    :root[data-foret][data-foret-immersive='on'][data-foret-tools='on'] #top-settings-holder {
+        justify-content: center;
+        gap: clamp(10px, 2.2vw, 40px);
+    }
+}

@@ -878,19 +878,30 @@
     pointer-events: none;
 }
 
-/* 面板本體：置中浮起的圓角托盤 */
+/* 面板本體：置中浮起的圓角托盤
+   注意：ST 以 ID 選擇器（#left-nav-panel／#right-nav-panel／#character_popup
+   ／#world_popup）定位這些面板，ID 優先權高於 class——只寫
+   .drawer-content.openDrawer 會被蓋掉（角色卡與預設頁不會變成托盤）。
+   因此逐一列出 ID。 */
 :root[data-foret] .drawer-content.openDrawer,
+:root[data-foret] #left-nav-panel.openDrawer,
+:root[data-foret] #right-nav-panel.openDrawer,
+:root[data-foret] #world_popup.openDrawer,
+:root[data-foret] #WorldInfo.openDrawer,
+:root[data-foret] #user-settings-block.openDrawer,
 :root[data-foret] #character_popup.open {
     /* 註：ST 在 <html> 掛 perspective，固定元素的百分比高度基準會變成
        0 高的盒子——top:50% 會算成 0。改用視窗單位（dvh）錨定，不用置中百分比。 */
+    /* 以左右邊距定位，不用 left:50%+transform——ST 對部分面板另有
+       transform 規則，靠位移置中會被干擾；邊距寫法結果可預期。 */
     position: fixed !important;
     top: 56px !important;
-    left: 50% !important;
-    right: auto !important;
+    left: 11px !important;
+    right: 11px !important;
     bottom: auto !important;
-    transform: translateX(-50%) !important;
-    width: min(600px, calc(100dvw - 22px)) !important;
-    max-width: calc(100dvw - 22px) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
     min-width: 0 !important;
     height: auto !important;
     max-height: calc(100dvh - 112px) !important;
@@ -907,7 +918,9 @@
 }
 /* 左右側欄面板同樣改托盤（不再貼邊全屏） */
 :root[data-foret] .fillLeft.openDrawer,
-:root[data-foret] .fillRight.openDrawer {
+:root[data-foret] .fillRight.openDrawer,
+:root[data-foret] #left-nav-panel.openDrawer,
+:root[data-foret] #right-nav-panel.openDrawer {
     width: min(600px, calc(100dvw - 22px)) !important;
     height: auto !important;
     max-height: calc(100dvh - 90px) !important;
@@ -977,11 +990,55 @@
 /* 桌面：托盤稍寬，仍是浮起卡片 */
 @media screen and (min-width: 1000px) {
     :root[data-foret] .drawer-content.openDrawer,
+    :root[data-foret] #left-nav-panel.openDrawer,
+    :root[data-foret] #right-nav-panel.openDrawer,
+    :root[data-foret] #world_popup.openDrawer,
+    :root[data-foret] #WorldInfo.openDrawer,
+    :root[data-foret] #user-settings-block.openDrawer,
     :root[data-foret] #character_popup.open {
-        width: min(820px, calc(100vw - 80px)) !important;
-        max-width: calc(100vw - 80px) !important;
+        left: max(40px, calc((100vw - 820px) / 2)) !important;
+        right: max(40px, calc((100vw - 820px) / 2)) !important;
+        width: auto !important;
+        max-width: none !important;
         max-height: calc(100vh - 140px) !important;
         top: 64px !important;
         padding: 20px 18px !important;
     }
+}
+
+/* ═══ 擴充管理清單：名稱要看得見 ═══════════════════════════════
+   病根：每列的操作鈕沿用了 .menu_button 的大內距，把名稱欄擠到只
+   剩一個字。改法：整列排成 flex，名稱吃滿剩餘寬度並可省略，
+   操作鈕固定小尺寸不撐開。 */
+:root[data-foret] .extension_block {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px !important;
+}
+:root[data-foret] .extension_block > input[type='checkbox'] { flex: none; margin: 0; }
+:root[data-foret] .extension_block .extension_name,
+:root[data-foret] .extension_block > span,
+:root[data-foret] .extension_block > a {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13.5px;
+}
+:root[data-foret] .extension_block .menu_button,
+:root[data-foret] .extension_block > .fa-solid,
+:root[data-foret] .extension_block > div:not(.extension_name) {
+    flex: none !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px !important;
+    border-radius: var(--fn-r-s) !important;
 }

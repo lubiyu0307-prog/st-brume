@@ -1164,3 +1164,111 @@
 :root[data-brume-immersive='on'] .swipe_right { opacity: .35; }
 :root[data-brume-immersive='on'] .mes:hover .swipe_left,
 :root[data-brume-immersive='on'] .mes:hover .swipe_right { opacity: .8; }
+
+/* ═══════════════════════════════════════════════════════════════
+   沉浸模式 v1.2.1：對齊 Brume 的控件語彙
+   —— 底部＝獨立圓鈕｜膠囊輸入框｜圓形送出鍵（非一整條膠囊）
+   —— 頭部右側＝獨立圓形玻璃鈕
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 頭部右側圓鈕：獨立玻璃圓形 */
+:root[data-brume-immersive='on'] #brume-header .bh-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--brume-surface-glass);
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2);
+}
+:root[data-brume-immersive='on'] #brume-header .bh-btn:hover {
+    background: var(--brume-accent-pale);
+    border-color: var(--brume-accent);
+}
+
+/* 底部：容器本身透明，讓各元件自己成形 */
+:root[data-brume-immersive='on'] #send_form {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    gap: 6px;
+}
+:root[data-brume-immersive='on'] #nonQRFormItems { gap: 6px; }
+
+/* 左右兩側：獨立圓形玻璃鈕 */
+:root[data-brume-immersive='on'] #leftSendForm > div,
+:root[data-brume-immersive='on'] #rightSendForm > div:not(.displayNone) {
+    width: 38px;
+    height: 38px;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    font-size: 16px !important;
+    background: var(--brume-surface-glass);
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2);
+    transition: color .2s, border-color .2s, background .2s;
+}
+:root[data-brume-immersive='on'] #leftSendForm > div:hover,
+:root[data-brume-immersive='on'] #rightSendForm > div:hover {
+    color: var(--brume-accent-deep) !important;
+    border-color: var(--brume-accent);
+}
+/* 送出鍵：主色實心圓（Brume 右下那顆） */
+:root[data-brume-immersive='on'] #send_but {
+    background: var(--brume-accent) !important;
+    border-color: transparent !important;
+    color: var(--brume-on-accent) !important;
+}
+:root[data-brume-immersive='on'] #send_but:hover {
+    background: var(--brume-accent-deep) !important;
+    color: var(--brume-on-accent) !important;
+}
+
+/* 中間：獨立膠囊輸入框 */
+:root[data-brume-immersive='on'] #send_textarea {
+    background: var(--brume-surface-glass) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2) !important;
+    border-radius: 20px !important;
+    padding: 9px 16px !important;
+    color: var(--brume-ink) !important;
+    line-height: 1.4;
+}
+:root[data-brume-immersive='on'] #send_textarea:focus {
+    border-color: var(--brume-accent) !important;
+}
+
+/* 快速回覆列：縮小、低調，貼在輸入列上方（比照 Brume 的小工具列） */
+:root[data-brume-immersive='on'] #qr--bar {
+    justify-content: center;
+    gap: 4px;
+    padding: 0 8px 6px;
+}
+:root[data-brume-immersive='on'] .qr--button {
+    font-size: 12px !important;
+    padding: 3px 10px !important;
+    border-radius: 999px !important;
+    opacity: .75;
+}
+:root[data-brume-immersive='on'] .qr--button:hover { opacity: 1; }
+
+/* 底座漸層在沉浸模式改淡：圓鈕是浮在背景上的，不需要整片底 */
+:root[data-brume-immersive='on'] #form_sheld::after {
+    background: linear-gradient(180deg, transparent, var(--brume-bg-bottom) 88%);
+    opacity: .75;
+}
+/* 快速回覆列必須橫排（ST 某些版本會直向堆疊） */
+:root[data-brume-immersive='on'] #qr--bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+}
+:root[data-brume-immersive='on'] #qr--bar > * { width: auto !important; flex: none !important; }

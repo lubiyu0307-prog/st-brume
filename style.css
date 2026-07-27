@@ -1004,8 +1004,15 @@
    問題：頂欄是直角滿版硬條、輸入列是圓潤膠囊，兩端語彙不一致；
    且輸入列下方露出一截清晰背景（手機只截中段，桌面兩側有背景）。 */
 
-/* 頂欄改成與輸入列同語彙的浮空圓角玻璃條 */
+/* 頂欄改成與輸入列同語彙的圓角玻璃條。
+   鐵律：#top-settings-holder 絕對不能 overflow:hidden——所有抽屜面板
+   （設定／角色卡／世界書…）都是它的子元素，會被整個裁掉而無法開啟。
+   圓角改畫在背景層 #top-bar 上，面板照常展開。 */
 :root[data-brume-theme] #top-settings-holder {
+    background: transparent !important;
+    overflow: visible !important;
+}
+:root[data-brume-theme] #top-bar {
     background: var(--brume-nav) !important;
     backdrop-filter: var(--brume-blur);
     -webkit-backdrop-filter: var(--brume-blur);
@@ -1013,11 +1020,6 @@
     border-top: none;
     border-radius: 0 0 22px 22px;
     box-shadow: var(--brume-shadow);
-    overflow: hidden;
-}
-:root[data-brume-theme] #top-bar {
-    background: transparent !important;
-    border: none !important;
 }
 
 /* 輸入列底座：把輸入列到螢幕實體底部之間補一層同色玻璃，

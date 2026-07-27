@@ -1375,3 +1375,31 @@
     background: color-mix(in srgb, #D69C7E 82%, transparent) !important;
     color: #2A1710 !important;
 }
+
+/* ═══ 輸入列窄螢幕防截斷（v1.2.4）══════════════════════════════
+   實測：右側按鈕全開（腳本播放/暫停/停止＋分身＋繼續＋中止＋送出）
+   在 390px 寬會把按鈕組推到畫面外。改為：允許換行到第二排、
+   縮小按鈕、輸入框保底寬度——寧可多一排，不要有按鈕消失在畫面外。 */
+@media screen and (max-width: 600px) {
+    :root[data-brume-immersive='on'] #nonQRFormItems {
+        flex-wrap: wrap !important;
+        justify-content: flex-end;
+        row-gap: 6px;
+    }
+    :root[data-brume-immersive='on'] #rightSendForm {
+        flex-wrap: wrap !important;
+        justify-content: flex-end;
+        max-width: 100%;
+        row-gap: 6px;
+    }
+    :root[data-brume-immersive='on'] #send_textarea {
+        min-width: 120px !important;
+        flex: 1 1 120px !important;
+    }
+    :root[data-brume-immersive='on'] #leftSendForm > div,
+    :root[data-brume-immersive='on'] #rightSendForm > div:not(.displayNone) {
+        width: 34px;
+        height: 34px;
+        font-size: 15px !important;
+    }
+}

@@ -1313,7 +1313,9 @@
     border: 1px solid var(--fn-line) !important;
     padding: 8px 10px !important;
     margin-bottom: 7px;
-    overflow: hidden;
+    /* 不可 overflow:hidden——塞不下時會直接把最後一顆操作鈕裁掉，
+       而不是讓 index.js 的量測矯正把它換行救回來 */
+    overflow: visible;
     transition: border-color .18s, background .18s;
 }
 :root[data-foret] .extension_block:hover {

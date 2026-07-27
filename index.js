@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.5.1';
+    const VERSION = '3.6.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -171,14 +171,88 @@
         }
     }
 
-    // ── 擴充管理彈窗：內容容器寬度矯正 ─────────────────────────
-    // 病根：主題把彈窗撐寬後，ST 在開窗時寫進內容容器的「行內
-    // 像素寬度」還是舊值，清單擠在左側、操作鈕被裁。CSS 蓋不到
-    // 行內樣式的具體數值，所以由 JS 沿著擴充列往上走到彈窗為止，
-    // 把每層容器的寬度以 inline !important 強制改回 auto。
+    // ── 擴充管理彈窗：版面矯正（量測式，不猜 class 名）─────────
+    // 前幾版失敗的原因：用 CSS 猜 ST 的 class 名稱去縮按鈕、撐容器，
+    // 猜錯就完全無效，而且看不出來。這裡改成不依賴任何 class：
+    //   1. 沿 DOM 往上把每層容器的行內寬度改回 auto（ST 開窗時會
+    //      把舊的像素寬度寫進行內樣式，CSS 蓋不掉具體數值）
+    //   2. 逐一檢查每列的子元素：有文字的＝名稱（可縮、刪節號），
+    //      沒文字的＝圖示鈕（固定 30px 不可縮）；成組的按鈕容器
+    //      再往下一層處理
+    //   3. 最後「量」一次：若最後一顆按鈕仍超出列的右緣，就改成
+    //      換行（名稱一行、按鈕一行）——保證任何情況都不會被裁
+    const BTN = 30;
+
+    function sizeIconButton(el) {
+        el.style.setProperty('flex', 'none', 'important');
+        el.style.setProperty('width', BTN + 'px', 'important');
+        el.style.setProperty('height', BTN + 'px', 'important');
+        el.style.setProperty('min-width', BTN + 'px', 'important');
+        el.style.setProperty('max-width', BTN + 'px', 'important');
+        el.style.setProperty('padding', '0', 'important');
+        el.style.setProperty('margin', '0', 'important');
+        el.style.setProperty('flex-shrink', '0', 'important');
+    }
+
+    function fixExtensionRow(row) {
+        row.style.setProperty('display', 'flex', 'important');
+        row.style.setProperty('flex-direction', 'row', 'important');
+        row.style.setProperty('flex-wrap', 'nowrap', 'important');
+        row.style.setProperty('align-items', 'center', 'important');
+        row.style.setProperty('gap', '5px', 'important');
+        row.style.setProperty('overflow', 'visible', 'important');
+        row.style.setProperty('width', 'auto', 'important');
+        row.style.setProperty('max-width', '100%', 'important');
+        row.style.setProperty('box-sizing', 'border-box', 'important');
+
+        let nameEl = null;
+        for (const child of Array.from(row.children)) {
+            if (child.tagName === 'INPUT') {           // 勾選框
+                child.style.setProperty('flex', 'none', 'important');
+                child.style.setProperty('margin', '0', 'important');
+                continue;
+            }
+            const hasText = (child.textContent || '').trim().length > 0;
+            if (hasText) {                              // 名稱（唯一有文字的）
+                if (!nameEl) nameEl = child;
+                child.style.setProperty('flex', '1 1 auto', 'important');
+                child.style.setProperty('min-width', '0', 'important');
+                child.style.setProperty('overflow', 'hidden', 'important');
+                child.style.setProperty('text-overflow', 'ellipsis', 'important');
+                child.style.setProperty('white-space', 'nowrap', 'important');
+                child.style.setProperty('text-align', 'left', 'important');
+            } else if (child.children.length >= 2) {    // 成組的按鈕容器
+                child.style.setProperty('flex', 'none', 'important');
+                child.style.setProperty('display', 'flex', 'important');
+                child.style.setProperty('flex-wrap', 'nowrap', 'important');
+                child.style.setProperty('gap', '5px', 'important');
+                child.style.setProperty('width', 'auto', 'important');
+                child.style.setProperty('padding', '0', 'important');
+                child.style.setProperty('margin', '0', 'important');
+                for (const btn of Array.from(child.children)) sizeIconButton(btn);
+            } else {                                    // 單顆圖示鈕
+                sizeIconButton(child);
+            }
+        }
+
+        // 量測：最後一個元素若仍超出列的內緣，改成換行版面。
+        // 名稱的 basis 設成「整列寬 − 60px」，剛好讓第一行放得下
+        // 勾選框＋圖示＋名稱，而任何一顆按鈕都擠不進去 → 必定換行。
+        const last = row.children[row.children.length - 1];
+        if (!last) return;
+        const rowRect = row.getBoundingClientRect();
+        const padR = parseFloat(getComputedStyle(row).paddingRight) || 0;
+        if (last.getBoundingClientRect().right > rowRect.right - padR + 1) {
+            row.style.setProperty('flex-wrap', 'wrap', 'important');
+            row.style.setProperty('row-gap', '7px', 'important');
+            if (nameEl) nameEl.style.setProperty('flex', '1 1 calc(100% - 60px)', 'important');
+        }
+    }
+
     function fixExtensionsPopupLayout() {
         const rows = document.querySelectorAll('.extension_block');
         if (!rows.length) return;
+        // 1) 容器：把行內寫死的舊寬度改回 auto
         const seen = new Set();
         for (const row of rows) {
             let el = row.parentElement;
@@ -192,10 +266,15 @@
                     el.style.setProperty('min-width', '0', 'important');
                     el.style.setProperty('margin-left', '0', 'important');
                     el.style.setProperty('margin-right', '0', 'important');
+                    el.style.setProperty('overflow-x', 'visible', 'important');
                 }
                 el = el.parentElement;
                 hops++;
             }
+        }
+        // 2) 每一列（容器改完後才量，量到的才是最終寬度）
+        for (const row of rows) {
+            try { fixExtensionRow(row); } catch (_) { }
         }
     }
 
@@ -264,6 +343,23 @@
             tradifyMenus();
             fixExtensionsPopupLayout();
         }, 120), true);
+        // 彈窗是動態插入的——用 MutationObserver 在它出現的當下就矯正，
+        // 不必等輪詢（否則使用者會先看到 0～3 秒的壞版面）
+        try {
+            // 200ms 防抖：訊息串流時 DOM 會狂插入，不節流會拖慢舊機
+            let timer = null;
+            const observer = new MutationObserver(() => {
+                if (timer) return;
+                timer = setTimeout(() => {
+                    timer = null;
+                    tradifyMenus();
+                    fixExtensionsPopupLayout();
+                }, 200);
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        } catch (_) { }
+        // 轉向／視窗尺寸改變後重新量一次
+        window.addEventListener('resize', () => setTimeout(fixExtensionsPopupLayout, 120));
     }
 
     // ── 設定面板 ───────────────────────────────────────────────

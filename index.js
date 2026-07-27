@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.9.0';
+    const VERSION = '3.9.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -188,20 +188,54 @@
         } catch (_) { return false; }
     }
 
+    // 浮動等待列：關閉串流時，ST 要等整個回覆收完才建立訊息
+    //（Generate() 會 await 完才 addOneMessage），等待期間聊天區
+    // 空無一物，沒有東西可以附著。所以另外放一列在輸入框正上方。
+    // 它是 #form_sheld 的前一個兄弟節點，不在 #chat 裡——ST 對
+    // .mes 的索引完全不受影響。
+    function ensureWaitBar(show) {
+        let el = document.getElementById('foret-wait');
+        if (!show) { if (el) el.remove(); return; }
+        if (!el) {
+            const form = document.getElementById('form_sheld');
+            if (!form || !form.parentNode) return;
+            el = document.createElement('div');
+            el.id = 'foret-wait';
+            el.innerHTML = '<span class="fw-ava"><img alt="" /></span>'
+                + '<span class="fw-bub"><span class="fw-ball"></span></span>';
+            form.parentNode.insertBefore(el, form);
+        }
+        // 借頭部那張角色頭貼，等待列才知道是誰在寫
+        try {
+            const src = (document.querySelector('#foret-header .fh-avatar') || {}).src || '';
+            const img = el.querySelector('.fw-ava img');
+            if (img && src && img.getAttribute('src') !== src) img.setAttribute('src', src);
+            if (img) img.style.visibility = src ? 'visible' : 'hidden';
+        } catch (_) { }
+    }
+
     function markWaiting() {
-        const rows = document.querySelectorAll('#chat .mes');
-        if (!rows.length) return;
         const gen = isGenerating();
+        const rows = document.querySelectorAll('#chat .mes');
+        let placeholder = false;
+
         for (const row of rows) {
             const t = row.querySelector('.mes_text');
             const txt = t ? (t.textContent || '').trim() : '';
+            // 開串流時 ST 會先插一則內容是「…」的佔位訊息，直接就地換掉。
+            // 必須同時確認正在生成——否則角色真的只回一個「…」時，
+            // 那顆櫻桃會永遠留在畫面上。
             const waiting = gen && (txt === '' || txt === '...' || txt === '…');
             if (waiting) {
+                placeholder = true;
                 if (row.getAttribute('data-foret-wait') !== 'on') row.setAttribute('data-foret-wait', 'on');
             } else if (row.hasAttribute('data-foret-wait')) {
                 row.removeAttribute('data-foret-wait');
             }
         }
+        // 有佔位訊息就用那則，沒有（＝關閉串流）才出動浮動等待列，
+        // 兩者不會同時出現兩顆櫻桃
+        ensureWaitBar(gen && !placeholder);
     }
 
     // ── 空回診斷 ───────────────────────────────────────────────
@@ -717,6 +751,7 @@
                 genEvs.forEach(e => ctx.eventSource.on(e, () => {
                     markWaiting();
                     setTimeout(markWaiting, 120);
+                    setTimeout(markWaiting, 500);
                 }));
             }
         } catch (_) { }
@@ -748,6 +783,23 @@
             });
             observer.observe(document.body, { childList: true, subtree: true });
         } catch (_) { }
+        // 停止鍵的顯示狀態就是「正在生成」的權威訊號——直接盯它的
+        // 屬性變化，等待動畫才能在按下送出的當下就出現。
+        // 關閉串流時聊天區在等待期間毫無變動，光靠上面那個
+        // MutationObserver 是等不到的。
+        (function attachStopWatch(tries) {
+            const stop = document.getElementById('mes_stop');
+            if (!stop) {
+                if (tries < 40) setTimeout(() => attachStopWatch(tries + 1), 500);
+                return;
+            }
+            try {
+                new MutationObserver(() => {
+                    markWaiting();
+                    setTimeout(markWaiting, 80);
+                }).observe(stop, { attributes: true, attributeFilter: ['style', 'class'] });
+            } catch (_) { }
+        })(0);
         // 轉向／視窗尺寸改變後重新量一次
         window.addEventListener('resize', () => setTimeout(fixExtensionsPopupLayout, 120));
     }

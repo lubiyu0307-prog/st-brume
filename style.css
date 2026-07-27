@@ -591,6 +591,82 @@
 /* 等待中不顯示訊息動作鈕，畫面乾淨 */
 :root[data-foret] #chat .mes[data-foret-wait] .mes_buttons { opacity: 0 !important; }
 
+/* 浮動等待列（關閉串流時用）：位置在輸入框正上方，
+   由 index.js 插在 #form_sheld 前面，不在 #chat 裡。 */
+:root[data-foret] #foret-wait {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 2px 8px 7px;
+    animation: foret-wait-in .22s ease-out;
+}
+@keyframes foret-wait-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+:root[data-foret] #foret-wait .fw-ava {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: 50%;
+    padding: 2px;
+    box-sizing: border-box;
+    background: repeating-conic-gradient(var(--fn-line-cream) 0 9deg, transparent 9deg 18deg);
+}
+:root[data-foret] #foret-wait .fw-ava img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: var(--fn-cake-2);
+}
+:root[data-foret] #foret-wait .fw-bub {
+    position: relative;
+    width: 92px;
+    height: 30px;
+    border-radius: 4px 15px 15px 15px;
+    background: var(--fn-bubble);
+    border: 1px solid rgba(246, 239, 231, 0.07);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+/* 泡泡尾巴，與訊息泡泡同一個造型 */
+:root[data-foret] #foret-wait .fw-bub::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -7px;
+    width: 9px;
+    height: 12px;
+    background: var(--fn-bubble);
+    clip-path: polygon(100% 0, 100% 100%, 0 0);
+}
+/* 巧克力軌道 */
+:root[data-foret] #foret-wait .fw-bub::after {
+    content: '';
+    position: absolute;
+    left: 13px;
+    bottom: 9px;
+    width: 66px;
+    height: 3px;
+    border-radius: 999px;
+    background: repeating-linear-gradient(90deg, #5A382D 0 7px, #3E2620 7px 8px);
+}
+:root[data-foret] #foret-wait .fw-ball {
+    position: absolute;
+    left: 13px;
+    bottom: 9.5px;
+    width: 17px;
+    height: 17px;
+    z-index: 1;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M9.8 8.2C9.8 4.8 12 3.2 14.6 2.6' fill='none' stroke='%23A9D98C' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='9.4' cy='13.2' r='5.7' fill='%23C8465A'/%3E%3Ccircle cx='7.4' cy='11.3' r='1.8' fill='%23E0788A'/%3E%3C/svg%3E") center / contain no-repeat;
+    animation: foret-roll 1.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    :root[data-foret] #foret-wait { animation: none; }
+    :root[data-foret] #foret-wait .fw-ball { animation: none; transform: translateX(25px); }
+}
+
 /* 訊息動作鈕（⋯／鉛筆）：滑鼠裝置滑過才浮現；觸控裝置沒有
    hover，常駐且要看得清楚——先前用可可色＋半透明，壓在深色
    泡泡上幾乎隱形。改用櫻桃亮階、不透明。 */

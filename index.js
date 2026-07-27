@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.9.1';
+    const VERSION = '3.9.2';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -214,28 +214,39 @@
         } catch (_) { }
     }
 
+    // 等待中的訊息只有一顆櫻桃，永遠在浮動等待列上。
+    // 開串流時 ST 會先插一則內容是「…」的佔位訊息——那就是使用者
+    // 看到的「空框」。這裡把它收掉：完全沒內容的整則隱藏，只有
+    // 思考內容的則保留思考摺疊、把空的內文區藏起來，不留一塊空白。
+    const isBlank = (s) => { const t = (s || '').trim(); return t === '' || t === '...' || t === '…'; };
+
     function markWaiting() {
         const gen = isGenerating();
         const rows = document.querySelectorAll('#chat .mes');
-        let placeholder = false;
 
         for (const row of rows) {
             const t = row.querySelector('.mes_text');
-            const txt = t ? (t.textContent || '').trim() : '';
-            // 開串流時 ST 會先插一則內容是「…」的佔位訊息，直接就地換掉。
+            const txt = t ? t.textContent : '';
             // 必須同時確認正在生成——否則角色真的只回一個「…」時，
-            // 那顆櫻桃會永遠留在畫面上。
-            const waiting = gen && (txt === '' || txt === '...' || txt === '…');
-            if (waiting) {
-                placeholder = true;
-                if (row.getAttribute('data-foret-wait') !== 'on') row.setAttribute('data-foret-wait', 'on');
+            // 那則訊息會被永遠藏起來。
+            if (gen && isBlank(txt)) {
+                const r = row.querySelector('.mes_reasoning');
+                const hasReason = r && (r.textContent || '').trim().length > 0;
+                const mode = hasReason ? 'reason' : 'bare';
+                if (row.getAttribute('data-foret-wait') !== mode) row.setAttribute('data-foret-wait', mode);
             } else if (row.hasAttribute('data-foret-wait')) {
                 row.removeAttribute('data-foret-wait');
             }
         }
-        // 有佔位訊息就用那則，沒有（＝關閉串流）才出動浮動等待列，
-        // 兩者不會同時出現兩顆櫻桃
-        ensureWaitBar(gen && !placeholder);
+
+        // 一開始串流出字就收起等待列，交棒給真正的訊息
+        const last = rows[rows.length - 1];
+        let streaming = false;
+        if (last && last.getAttribute('is_user') !== 'true') {
+            const lt = last.querySelector('.mes_text');
+            streaming = !isBlank(lt ? lt.textContent : '');
+        }
+        ensureWaitBar(gen && !streaming);
     }
 
     // ── 空回診斷 ───────────────────────────────────────────────

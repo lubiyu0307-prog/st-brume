@@ -540,58 +540,25 @@
 :root[data-foret] #chat .mes_text i { color: var(--fn-caramel); font-style: italic; }
 :root[data-foret] #chat .mes_text a { color: var(--fn-cherry-soft); }
 
-/* ── 等待動畫：櫻桃在巧克力磚上滾 ──────────────────────────
-   生成中 ST 會放一則內容是「…」的佔位訊息，index.js 把它標成
-   data-foret-wait，這裡把那三個點藏掉、換成滾動的櫻桃。
-   兩個偽元素分工：::before 是巧克力軌道、::after 是櫻桃本體
-  （櫻桃用內嵌 SVG，果實與梗才畫得乾淨，旋轉時梗會跟著甩）。 */
-:root[data-foret] #chat .mes[data-foret-wait] .mes_text {
-    position: relative;
-    min-width: 78px;
-    min-height: 26px;
-    /* 藏掉佔位的「…」，但保留元素本身撐開泡泡 */
-    font-size: 0 !important;
-    color: transparent !important;
-    padding-top: 0;
-}
-:root[data-foret] #chat .mes[data-foret-wait] .mes_text::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 5px;
-    width: 66px;
-    height: 3px;
-    border-radius: 999px;
-    background: repeating-linear-gradient(90deg, #5A382D 0 7px, #3E2620 7px 8px);
-    opacity: .9;
-}
-:root[data-foret] #chat .mes[data-foret-wait] .mes_text::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 5.5px;
-    width: 17px;
-    height: 17px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M9.8 8.2C9.8 4.8 12 3.2 14.6 2.6' fill='none' stroke='%23A9D98C' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='9.4' cy='13.2' r='5.7' fill='%23C8465A'/%3E%3Ccircle cx='7.4' cy='11.3' r='1.8' fill='%23E0788A'/%3E%3C/svg%3E") center / contain no-repeat;
-    animation: foret-roll 1.9s ease-in-out infinite;
-}
+/* ── 等待中的佔位訊息：不要留一個空框 ──────────────────────
+   開串流時 ST 會先插一則內容是「…」的佔位訊息，那就是使用者
+   看到的空框。等待的視覺一律交給下面的浮動等待列，這裡只負責
+   把空框收掉：
+     bare   完全沒內容 → 整則隱藏
+     reason 只有思考內容 → 留下思考摺疊，藏掉空的內文區 */
+:root[data-foret] #chat .mes[data-foret-wait='bare'] { display: none !important; }
+:root[data-foret] #chat .mes[data-foret-wait] .mes_text { display: none !important; }
+:root[data-foret] #chat .mes[data-foret-wait] .mes_buttons { opacity: 0 !important; }
+:root[data-foret] #chat .mes[data-foret-wait='reason'] .mes_reasoning_details { margin-bottom: 2px; }
+
 /* 去程順時針滾到底，回程反向轉回來——方向與位移一致才像真的在滾 */
 @keyframes foret-roll {
     0%   { transform: translateX(0) rotate(0deg); }
     50%  { transform: translateX(49px) rotate(360deg); }
     100% { transform: translateX(0) rotate(0deg); }
 }
-/* 系統開了「減少動態效果」就停成靜態，不閃 */
-@media (prefers-reduced-motion: reduce) {
-    :root[data-foret] #chat .mes[data-foret-wait] .mes_text::after {
-        animation: none;
-        transform: translateX(25px);
-    }
-}
-/* 等待中不顯示訊息動作鈕，畫面乾淨 */
-:root[data-foret] #chat .mes[data-foret-wait] .mes_buttons { opacity: 0 !important; }
 
-/* 浮動等待列（關閉串流時用）：位置在輸入框正上方，
+/* 浮動等待列：唯一的等待視覺。位置在輸入框正上方，
    由 index.js 插在 #form_sheld 前面，不在 #chat 裡。 */
 :root[data-foret] #foret-wait {
     display: flex;

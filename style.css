@@ -1403,3 +1403,88 @@
         font-size: 15px !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   沉浸模式 v1.3.0：整寬連續文字流（比照 Brume 實際版面）
+   —— 訊息不是一格一格的氣泡卡片，而是整寬的連續文字面板。
+   —— 沒有每則頭貼；角色資訊只在頂部頭部出現一次。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ① 工具列確實收起（ST 樣式優先權較高，需 !important） */
+:root[data-brume-immersive='on'] #top-settings-holder { display: none !important; }
+:root[data-brume-immersive='on'][data-brume-tools='on'] #top-settings-holder { display: flex !important; }
+:root[data-brume-immersive='on'] #top-bar { display: none !important; }
+
+/* ② 訊息：整寬、連續、無頭貼——不再一塊一塊 */
+:root[data-brume-immersive='on'] #chat .mes {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+:root[data-brume-immersive='on'] #chat .mes .mesAvatarWrapper { display: none !important; }
+:root[data-brume-immersive='on'] #chat .mes .mes_block {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px 20px !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--brume-bg-bottom) 52%, transparent) !important;
+}
+/* 相鄰同一方的訊息連成一片；換人時以極細分隔線區隔 */
+:root[data-brume-immersive='on'] #chat .mes + .mes .mes_block {
+    border-top: 1px solid rgba(255, 255, 255, .06) !important;
+}
+/* 玩家訊息：同樣整寬，只以左緣主色細線與微弱色偏標示 */
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_block {
+    background: color-mix(in srgb, var(--brume-accent) 12%, color-mix(in srgb, var(--brume-bg-bottom) 52%, transparent)) !important;
+    border-left: 2px solid var(--brume-accent) !important;
+}
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text,
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text q { color: var(--brume-ink) !important; }
+
+/* 名字列低調化：小字、與內文同一欄 */
+:root[data-brume-immersive='on'] #chat .name_text {
+    font-size: 12px;
+    color: var(--brume-accent-deep);
+    letter-spacing: .5px;
+}
+:root[data-brume-immersive='on'] #chat .timestamp { font-size: 10px; }
+
+/* 對話捲動區本身完全透明——背景照片一路清晰到底 */
+:root[data-brume-immersive='on'] #chat,
+:root[data-brume-immersive='on'] #sheld {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* ③ 輸入列按鈕統一中性（不再是彩色圓餅），只有送出是主色 */
+:root[data-brume-immersive='on'] #rightSendForm > div,
+:root[data-brume-immersive='on'] #leftSendForm > div {
+    background: color-mix(in srgb, var(--brume-bg-bottom) 58%, transparent) !important;
+    color: var(--brume-ink-2) !important;
+    border: 1px solid rgba(255, 255, 255, .1) !important;
+}
+:root[data-brume-immersive='on'] #rightSendForm > div i { color: inherit !important; }
+:root[data-brume-immersive='on'] #rightSendForm > #send_but,
+:root[data-brume-immersive='on'] #rightSendForm > #send_but i {
+    background: var(--brume-accent) !important;
+    color: var(--brume-on-accent) !important;
+}
+
+/* ④ 窄螢幕：輸入框獨佔整行，按鈕排在下一行——不再被擠成一絲 */
+@media screen and (max-width: 600px) {
+    :root[data-brume-immersive='on'] #send_textarea {
+        flex: 1 0 100% !important;
+        order: -1;
+        min-width: 0 !important;
+    }
+    :root[data-brume-immersive='on'] #leftSendForm { order: 1; }
+    :root[data-brume-immersive='on'] #rightSendForm { order: 2; margin-left: auto; }
+}
+/* 中止鍵在沉浸模式也統一中性（v1.2.3 的暖色圓在此顯得突兀） */
+:root[data-brume-immersive='on'] #rightSendForm > #mes_stop,
+:root[data-brume-immersive='on'] #rightSendForm > #mes_stop i {
+    background: color-mix(in srgb, var(--brume-bg-bottom) 58%, transparent) !important;
+    color: var(--brume-ink-2) !important;
+}

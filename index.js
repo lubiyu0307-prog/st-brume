@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.8.0';
+    const VERSION = '3.9.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -168,6 +168,38 @@
             while ((node = walker.nextNode())) {
                 const t = toTraditional(node.nodeValue);
                 if (t !== node.nodeValue) node.nodeValue = t;
+            }
+        }
+    }
+
+    // ── 等待動畫：滾動的櫻桃 ───────────────────────────────────
+    // ST 生成時會先放一則內容是「…」的佔位訊息（script.js 的
+    // firstMessageText = '...'），開始串流才換成真正的字。
+    // 這裡把那則佔位訊息標記起來，交給 style.css 換成滾動的櫻桃。
+    // 必須同時確認「正在生成」——否則角色真的只回一個「…」時，
+    // 那顆櫻桃會永遠留在畫面上。生成中的訊號用停止鍵的顯示狀態
+    //（script.js 生成時 #mes_stop 設 display:flex，結束設 none）。
+    function isGenerating() {
+        const stop = document.getElementById('mes_stop');
+        if (!stop) return false;
+        try {
+            const cs = getComputedStyle(stop);
+            return cs.display !== 'none' && cs.visibility !== 'hidden';
+        } catch (_) { return false; }
+    }
+
+    function markWaiting() {
+        const rows = document.querySelectorAll('#chat .mes');
+        if (!rows.length) return;
+        const gen = isGenerating();
+        for (const row of rows) {
+            const t = row.querySelector('.mes_text');
+            const txt = t ? (t.textContent || '').trim() : '';
+            const waiting = gen && (txt === '' || txt === '...' || txt === '…');
+            if (waiting) {
+                if (row.getAttribute('data-foret-wait') !== 'on') row.setAttribute('data-foret-wait', 'on');
+            } else if (row.hasAttribute('data-foret-wait')) {
+                row.removeAttribute('data-foret-wait');
             }
         }
     }
@@ -678,11 +710,20 @@
                 evs.forEach(e => ctx.eventSource.on(e, () => {
                     updateHeader(); detectBackground(); markDaySeparators();
                 }));
+                // 生成開始／結束是等待動畫最精準的訊號，直接掛事件；
+                // 結束時多補一次（ST 先隱藏停止鍵才收尾，稍慢一拍）
+                const genEvs = [ctx.event_types.GENERATION_STARTED, ctx.event_types.GENERATION_ENDED,
+                                ctx.event_types.GENERATION_STOPPED].filter(Boolean);
+                genEvs.forEach(e => ctx.eventSource.on(e, () => {
+                    markWaiting();
+                    setTimeout(markWaiting, 120);
+                }));
             }
         } catch (_) { }
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
         setInterval(() => {
-            detectBackground(); tradifyMenus(); fixExtensionsPopupLayout(); markDaySeparators();
+            detectBackground(); tradifyMenus(); fixExtensionsPopupLayout();
+            markDaySeparators(); markWaiting();
         }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
@@ -702,6 +743,7 @@
                     tradifyMenus();
                     fixExtensionsPopupLayout();
                     markDaySeparators();
+                    markWaiting();
                 }, 200);
             });
             observer.observe(document.body, { childList: true, subtree: true });

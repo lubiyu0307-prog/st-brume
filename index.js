@@ -12,7 +12,7 @@
 
     const MODULE = 'st_brume';
     const LS_KEY = 'st_brume_settings';
-    const VERSION = '1.1.3';
+    const VERSION = '1.2.0';
 
     const DEFAULTS = Object.freeze({
         theme: 'aurora',     // aurora | aquarium | night
@@ -22,6 +22,7 @@
         blur: true,          // 玻璃模糊（手機發熱可關）
         motion: true,        // 背景動畫
         narrow: false,       // 手機窄版（聊天欄收成置中窄欄）
+        immersive: false,    // 沉浸模式：收起工具列，改用 Brume 式角色頭部
     });
 
     const THEMES = [
@@ -100,6 +101,9 @@
         html.setAttribute('data-brume-blur', settings.blur ? 'on' : 'off');
         html.setAttribute('data-brume-motion', settings.motion ? 'on' : 'off');
         html.setAttribute('data-brume-narrow', settings.narrow ? 'on' : 'off');
+        html.setAttribute('data-brume-immersive', settings.immersive ? 'on' : 'off');
+        if (!settings.immersive) html.removeAttribute('data-brume-tools');
+        if (settings.immersive) updateHeader();
         const acc = ACCENTS.find(a => a.key === settings.accent);
         applyAccent(acc ? acc.hex : '');
     }
@@ -117,6 +121,73 @@
             '<div class="brume-aurora"><i></i><i></i><i></i></div>' +
             '<div class="brume-aqua"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
         document.body.prepend(el);
+    }
+
+    // ── Brume 式角色頭部（沉浸模式）────────────────────────────
+    //    一條「頭貼＋角色名＋一句狀態」，右側是工具列開關與選單。
+    //    功能不減：原生工具圖示列改成點一下才展開。
+    function buildHeader() {
+        if (document.getElementById('brume-header')) return;
+        const el = document.createElement('div');
+        el.id = 'brume-header';
+        el.innerHTML =
+            '<img class="bh-avatar" alt="" />' +
+            '<div class="bh-text"><div class="bh-name"></div><div class="bh-sub"></div></div>' +
+            '<div class="bh-btn bh-tools fa-solid fa-sliders" title="工具列"></div>' +
+            '<div class="bh-btn bh-menu fa-solid fa-ellipsis" title="更多"></div>';
+        document.body.appendChild(el);
+
+        el.querySelector('.bh-tools').addEventListener('click', () => {
+            const html = document.documentElement;
+            const on = html.getAttribute('data-brume-tools') === 'on';
+            if (on) html.removeAttribute('data-brume-tools');
+            else html.setAttribute('data-brume-tools', 'on');
+        });
+        // 「更多」＝叫出原生的訊息選項選單（功能完全沿用 ST 自己的）
+        el.querySelector('.bh-menu').addEventListener('click', () => {
+            const btn = document.getElementById('options_button');
+            if (btn) btn.click();
+        });
+    }
+
+    // 從 ST 目前的角色／群組取頭貼、名稱與一句狀態（無資料時給中性字樣）
+    function updateHeader() {
+        const el = document.getElementById('brume-header');
+        if (!el) return;
+        let name = '', avatar = '', sub = '';
+        try {
+            const ctx = getContext();
+            if (ctx) {
+                const ch = (ctx.characters || [])[ctx.characterId];
+                if (ch) {
+                    name = ch.name || '';
+                    avatar = '/thumbnail?type=avatar&file=' + encodeURIComponent(ch.avatar || '');
+                    const line = (ch.creatorcomment || ch.description || '').split('\n').find(Boolean) || '';
+                    sub = line.slice(0, 40);
+                } else if (ctx.groupId && Array.isArray(ctx.groups)) {
+                    const g = ctx.groups.find(x => String(x.id) === String(ctx.groupId));
+                    if (g) { name = g.name || ''; sub = (g.members || []).length + ' 位成員'; }
+                }
+            }
+        } catch (_) { }
+        if (!name) { name = 'SillyTavern'; sub = '尚未選擇角色'; }
+        el.querySelector('.bh-name').textContent = name;
+        el.querySelector('.bh-sub').textContent = sub;
+        const img = el.querySelector('.bh-avatar');
+        if (avatar) { img.src = avatar; img.style.visibility = 'visible'; }
+        else { img.removeAttribute('src'); img.style.visibility = 'hidden'; }
+    }
+
+    // 換角色／換聊天時同步頭部
+    function hookHeaderEvents() {
+        try {
+            const ctx = getContext();
+            if (ctx && ctx.eventSource && ctx.event_types) {
+                const evs = [ctx.event_types.CHAT_CHANGED, ctx.event_types.CHARACTER_EDITED,
+                             ctx.event_types.GROUP_UPDATED].filter(Boolean);
+                evs.forEach(e => ctx.eventSource.on(e, updateHeader));
+            }
+        } catch (_) { }
     }
 
     // ── 設定面板（「擴充功能」抽屜）─────────────────────────────
@@ -158,6 +229,7 @@
             checkboxRow('brume_sky', 'Brume 夜空背景', settings.sky, '關閉可用回 SillyTavern 自己的背景圖') +
             checkboxRow('brume_motion', '背景動畫（極光／霧／星）', settings.motion, '手機省電可關，畫面保留但靜止') +
             checkboxRow('brume_blur', '玻璃模糊', settings.blur, '手機發熱時建議關閉') +
+            checkboxRow('brume_immersive', '沉浸模式（收起工具列，Brume 式頭部）', settings.immersive, '上方圖示列改成點頭部的滑桿鈕才展開') +
             checkboxRow('brume_narrow', '手機窄版（聊天欄置中收窄）', settings.narrow) +
             '    </div>' +
             '  </div>' +
@@ -180,6 +252,7 @@
         bindCheck('brume_motion', 'motion');
         bindCheck('brume_blur', 'blur');
         bindCheck('brume_narrow', 'narrow');
+        bindCheck('brume_immersive', 'immersive');
     }
 
     // 快取剋星：iOS Safari／PWA 會抱著舊 style.css 不放——
@@ -200,6 +273,8 @@
         bustStyleCache();
         settings = loadSettings();
         buildSky();
+        buildHeader();
+        hookHeaderEvents();
         apply();
         buildPanel();
         // 擴充載入順序不定：擴充頁容器可能晚於本擴充生成，補幾次重試

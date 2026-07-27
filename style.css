@@ -1053,3 +1053,114 @@
 
 /* 快速回覆列跟著輸入列的圓角語彙、貼齊同一組左右邊距 */
 :root[data-brume-theme] #qr--bar { padding: 0 8px 2px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   沉浸模式（v1.2.0）：把 SillyTavern 收斂成 Brume 那樣的單一畫面
+   —— 頂部一條「角色名＋狀態」、中間對話、底部圓潤輸入列。
+   工具圖示列預設收起，點頭部的選單鈕才展開（功能一個都沒少）。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 收起原生工具列（點選單鈕才展開） */
+:root[data-brume-immersive='on'] #top-settings-holder {
+    display: none;
+}
+:root[data-brume-immersive='on'][data-brume-tools='on'] #top-settings-holder {
+    display: flex;
+}
+/* 收起角色搜尋／管理列（第二排） */
+:root[data-brume-immersive='on'] #top-bar { display: none; }
+
+/* Brume 式角色頭部 */
+#brume-header { display: none; }
+:root[data-brume-immersive='on'] #brume-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3000;
+    padding: max(env(safe-area-inset-top), 8px) 14px 10px;
+    background: var(--brume-nav);
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border-bottom: 1px solid var(--brume-border);
+}
+#brume-header .bh-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    border: 1px solid var(--brume-border-2);
+    background: var(--brume-surface-2);
+}
+#brume-header .bh-text { flex: 1; min-width: 0; }
+#brume-header .bh-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--brume-ink);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#brume-header .bh-sub {
+    font-size: 11.5px;
+    color: var(--brume-ink-3);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#brume-header .bh-btn {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brume-ink-2);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    transition: color .2s, border-color .2s;
+}
+#brume-header .bh-btn:hover { color: var(--brume-accent); border-color: var(--brume-border-2); }
+:root[data-brume-tools='on'] #brume-header .bh-btn.bh-tools {
+    color: var(--brume-accent);
+    border-color: var(--brume-accent);
+}
+
+/* 對話區讓開頭部高度；工具列展開時再往下讓 */
+:root[data-brume-immersive='on'] #sheld {
+    top: 58px !important;
+    height: calc(100dvh - 58px) !important;
+    max-height: calc(100dvh - 58px) !important;
+}
+:root[data-brume-immersive='on'][data-brume-tools='on'] #sheld {
+    top: calc(58px + var(--topBarBlockSize)) !important;
+    height: calc(100dvh - 58px - var(--topBarBlockSize)) !important;
+}
+:root[data-brume-immersive='on'] #top-settings-holder {
+    top: 58px;
+}
+:root[data-brume-immersive='on'] .drawer-content {
+    top: calc(58px + var(--topBarBlockSize)) !important;
+}
+
+/* 訊息減噪：動作鈕與翻頁預設淡出，滑過／點到才浮現（Brume 的安靜感） */
+:root[data-brume-immersive='on'] #chat .mes .mes_buttons {
+    opacity: 0;
+    transition: opacity .2s;
+}
+:root[data-brume-immersive='on'] #chat .mes:hover .mes_buttons,
+:root[data-brume-immersive='on'] #chat .mes:focus-within .mes_buttons { opacity: 1; }
+:root[data-brume-immersive='on'] .swipes-counter { opacity: .45; font-size: 10px; }
+:root[data-brume-immersive='on'] .swipe_left,
+:root[data-brume-immersive='on'] .swipe_right { opacity: .35; }
+:root[data-brume-immersive='on'] .mes:hover .swipe_left,
+:root[data-brume-immersive='on'] .mes:hover .swipe_right { opacity: .8; }

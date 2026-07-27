@@ -1112,3 +1112,70 @@
     position: relative;
     z-index: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   v2.3 修正集
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ① 底部輸入區給實色托盤底——先前是漸層透明，快捷鍵與輸入框像懸空
+   的框浮在對話文字上，看起來「被遮住」。 */
+:root[data-foret] #form_sheld {
+    background: var(--fn-base-2) !important;
+    border-top: 1px solid var(--fn-line);
+    padding-top: 8px !important;
+}
+
+/* ② 訊息版面：頭貼與名字同一行，內文另起一行吃滿整寬
+   —— 文字可用空間變大；玩家側整組靠右。 */
+:root[data-foret] #chat .mes {
+    display: block !important;
+}
+:root[data-foret] #chat .mes .mesAvatarWrapper {
+    float: left;
+    margin: 0 10px 4px 0;
+}
+:root[data-foret] #chat .mes .mes_block {
+    width: auto !important;
+    max-width: 100% !important;
+}
+:root[data-foret] #chat .mes .ch_name {
+    display: flex;
+    align-items: baseline;
+    min-height: 36px;
+}
+:root[data-foret] #chat .mes .mes_text {
+    clear: both;
+    padding-top: 4px;
+}
+/* 玩家側：頭貼靠右、名字列靠右、內文靠右 */
+:root[data-foret] #chat .mes[is_user='true'] .mesAvatarWrapper {
+    float: right;
+    margin: 0 0 4px 10px;
+}
+:root[data-foret] #chat .mes[is_user='true'] .ch_name {
+    flex-direction: row-reverse;
+}
+:root[data-foret] #chat .mes[is_user='true'] .mes_text {
+    text-align: right;
+}
+:root[data-foret] #chat .mes[is_user='true'] .mes_buttons {
+    justify-content: flex-start;
+}
+/* 浮動清除：避免下一則訊息被上一則的頭貼卡住 */
+:root[data-foret] #chat .mes::after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+/* ③ 擴充清單名稱：靠左對齊——置中時過長會左右兩端都被裁掉 */
+:root[data-foret] .extension_block .extension_name,
+:root[data-foret] .extension_block > span,
+:root[data-foret] .extension_block > a,
+:root[data-foret] .extension_block label {
+    text-align: left !important;
+    justify-content: flex-start !important;
+}
+:root[data-foret] .extension_block {
+    justify-content: flex-start !important;
+}

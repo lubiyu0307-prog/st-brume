@@ -911,7 +911,13 @@
     margin: 0 !important;
     justify-content: flex-start;
 }
-:root[data-foret] #qr--bar > .qr--buttons { width: 100%; }
+/* 靠左起始：ST 原生對這層是 justify-content:center（quick-reply/style.css），
+   配上我們的單排不換行，內容一超出就從「兩端」各切掉一截——最左邊
+   那顆會被裁掉又很難捲回去。改成靠左，也才跟輸入列同一條起跑線。 */
+:root[data-foret] #qr--bar > .qr--buttons {
+    width: 100%;
+    justify-content: flex-start !important;
+}
 :root[data-foret] #qr--bar::-webkit-scrollbar,
 :root[data-foret] #qr--bar > .qr--buttons::-webkit-scrollbar { display: none; }
 /* 帶「⋮」的分割按鈕：ST 原生給 margin-left:1em + width:2em，

@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.4.1';
+    const VERSION = '3.5.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -176,37 +176,19 @@
         if (document.getElementById('foret-header')) return;
         const el = document.createElement('div');
         el.id = 'foret-header';
+        // 「更多（⋯）」按鈕已移除：它開的與輸入列左下的 ☰ 是同一個
+        // 選單，而經 JS 轉發的點擊在 iOS 上始終開不出來——留著只是
+        // 一顆死鍵。選單一律從 ☰ 進。
         el.innerHTML =
             '<img class="fh-avatar" alt="" />' +
             '<div class="fh-text"><div class="fh-name"></div><div class="fh-sub"></div></div>' +
-            '<div class="fh-btn fh-tools fa-solid fa-sliders" title="工具列"></div>' +
-            '<div class="fh-btn fh-menu fa-solid fa-ellipsis" title="更多"></div>';
+            '<div class="fh-btn fh-tools fa-solid fa-sliders" title="工具列"></div>';
         document.body.appendChild(el);
 
         el.querySelector('.fh-tools').addEventListener('click', () => {
             const html = document.documentElement;
             if (html.getAttribute('data-foret-tools') === 'on') html.removeAttribute('data-foret-tools');
             else html.setAttribute('data-foret-tools', 'on');
-        });
-        // 「更多」沿用 ST 原生的訊息選項選單，功能不另做。
-        // stopPropagation 必要：不擋的話原始點擊會冒泡到 document，
-        // ST 的「點選單外側就關閉」會在選單剛開的同一瞬間把它關掉
-        //（⋯ 一直「點不開」的病根——其實每次都有開，只是馬上被關）。
-        el.querySelector('.fh-menu').addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const btn = document.getElementById('options_button');
-            if (!btn) return;
-            btn.click();
-            // 備援：部分版本以 jQuery 委派綁定，原生 click 可能沒進到
-            // 處理器——80ms 後偵測選單真的展開了沒，沒有就用 jQuery 再觸發
-            setTimeout(() => {
-                const c = document.querySelector('#options .options-content')
-                    || document.getElementById('options');
-                const r = c ? c.getBoundingClientRect() : null;
-                const shown = r && r.width > 0 && r.height > 0;
-                if (!shown && window.jQuery) window.jQuery(btn).trigger('click');
-            }, 80);
         });
     }
 

@@ -475,8 +475,15 @@
     -webkit-backdrop-filter: var(--brume-blur);
     border: 1px solid var(--brume-border-2) !important;
     border-radius: 22px !important;
-    margin: 0 6px 6px;
+    /* 病根：width:100% ＋ 左右 margin ＝ 整條被推出畫面右緣（右側被截）。
+       改為寬度自適應＋box-sizing，左右留白交給 #form_sheld 的 padding。 */
+    width: auto !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 0 6px !important;
+    padding: 3px 8px !important;
     box-shadow: var(--brume-shadow);
+    overflow: visible;
 }
 :root[data-brume-theme] #send_textarea {
     background: transparent !important;
@@ -911,7 +918,7 @@
 :root[data-brume-theme] #extensions_settings .inline-drawer-toggle.inline-drawer-header,
 :root[data-brume-theme] #extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
 :root[data-brume-theme] #user-settings-block h4,
-:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header {
+:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header:not(.world_entry *):not(.world_entry_form *) {
     background-image: none !important;
     background-color: var(--brume-surface-2) !important;
     border: 1px solid var(--brume-border) !important;
@@ -922,7 +929,7 @@
 }
 :root[data-brume-theme] #extensions_settings .inline-drawer-toggle.inline-drawer-header:hover,
 :root[data-brume-theme] #extensions_settings2 .inline-drawer-toggle.inline-drawer-header:hover,
-:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header:hover {
+:root[data-brume-theme] .inline-drawer-toggle.inline-drawer-header:not(.world_entry *):not(.world_entry_form *):hover {
     background-color: var(--brume-accent-pale) !important;
     border-color: var(--brume-accent) !important;
 }
@@ -992,3 +999,55 @@
 :root[data-brume-sky='off'] #bg_custom {
     height: 100lvh !important;
 }
+
+/* ═══ 輸入列與頂欄的美感對齊（v1.1.2）════════════════════════
+   問題：頂欄是直角滿版硬條、輸入列是圓潤膠囊，兩端語彙不一致；
+   且輸入列下方露出一截清晰背景（手機只截中段，桌面兩側有背景）。 */
+
+/* 頂欄改成與輸入列同語彙的浮空圓角玻璃條 */
+:root[data-brume-theme] #top-settings-holder {
+    background: var(--brume-nav) !important;
+    backdrop-filter: var(--brume-blur);
+    -webkit-backdrop-filter: var(--brume-blur);
+    border: 1px solid var(--brume-border-2);
+    border-top: none;
+    border-radius: 0 0 22px 22px;
+    box-shadow: var(--brume-shadow);
+    overflow: hidden;
+}
+:root[data-brume-theme] #top-bar {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* 輸入列底座：把輸入列到螢幕實體底部之間補一層同色玻璃，
+   不再露出一截清晰背景（含 iOS 安全區）。 */
+:root[data-brume-theme] #form_sheld {
+    position: relative;
+    padding: 0 8px max(env(safe-area-inset-bottom), 6px);
+    box-sizing: border-box;
+}
+:root[data-brume-theme] #form_sheld::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    bottom: -2px;
+    z-index: -1;
+    background: linear-gradient(180deg, transparent, var(--brume-bg-bottom) 62%);
+    pointer-events: none;
+}
+
+/* 右側按鈕區永不被裁 */
+:root[data-brume-theme] #rightSendForm {
+    padding-right: 2px;
+    overflow: visible;
+}
+:root[data-brume-theme] #send_but,
+:root[data-brume-theme] #mes_stop,
+:root[data-brume-theme] #mes_continue,
+:root[data-brume-theme] #mes_impersonate { flex: none; }
+
+/* 快速回覆列跟著輸入列的圓角語彙、貼齊同一組左右邊距 */
+:root[data-brume-theme] #qr--bar { padding: 0 8px 2px; }

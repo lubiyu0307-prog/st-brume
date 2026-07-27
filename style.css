@@ -1296,3 +1296,82 @@
     resize: horizontal;
     overflow: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   沉浸模式 v1.2.3：訊息直接坐在背景上（Brume 的核心做法）
+   —— 不模糊背景：背景照片保持清晰銳利，訊息只是一層薄色墊。
+   —— 毛玻璃只留給頂部頭部（那裡需要與內容分離）。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 訊息：零模糊、低不透明度色墊、無邊框無陰影 */
+:root[data-brume-immersive='on'] #chat .mes .mes_block {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: color-mix(in srgb, var(--brume-bg-bottom) 58%, transparent) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    border-radius: 20px !important;
+}
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_block {
+    background: color-mix(in srgb, var(--brume-accent) 34%, transparent) !important;
+}
+/* 主色薄膜上文字回到亮墨（低不透明度時深墨會看不清） */
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text,
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text q {
+    color: var(--brume-ink) !important;
+}
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text em,
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .mes_text i {
+    color: var(--brume-accent-deep) !important;
+}
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .name_text,
+:root[data-brume-immersive='on'] #chat .mes[is_user='true'] .timestamp {
+    color: var(--brume-ink-2) !important;
+}
+/* 文字在清晰背景上要站得住：加一層極淡陰影撐可讀性（不糊背景） */
+:root[data-brume-immersive='on'] #chat .mes_text {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+}
+/* 頭貼在無邊框薄膜旁的定位維持不變，只去掉厚重邊 */
+:root[data-brume-immersive='on'] #chat .mes .avatar,
+:root[data-brume-immersive='on'] #chat .mes .avatar img {
+    border-color: rgba(255, 255, 255, .18) !important;
+}
+
+/* 底部輸入區同樣不模糊背景：圓鈕與膠囊改半透明色墊 */
+:root[data-brume-immersive='on'] #leftSendForm > div,
+:root[data-brume-immersive='on'] #rightSendForm > div:not(.displayNone),
+:root[data-brume-immersive='on'] #send_textarea {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: color-mix(in srgb, var(--brume-bg-bottom) 62%, transparent) !important;
+}
+:root[data-brume-immersive='on'] #send_but {
+    background: var(--brume-accent) !important;
+}
+/* 底座漸層撤掉——背景要一路清晰到底 */
+:root[data-brume-immersive='on'] #form_sheld::after { display: none; }
+
+/* 輸入列不換行、不被右緣截斷（桌面版按鈕較多時的保險） */
+:root[data-brume-immersive='on'] #nonQRFormItems {
+    flex-wrap: nowrap !important;
+    min-width: 0;
+}
+:root[data-brume-immersive='on'] #send_textarea {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+:root[data-brume-immersive='on'] #rightSendForm { flex-wrap: nowrap !important; }
+/* 送出鍵必須贏過上面的通用圓鈕色墊（提高選擇器優先權，非只靠 !important） */
+:root[data-brume-immersive='on'] #rightSendForm > #send_but {
+    background: var(--brume-accent) !important;
+    color: var(--brume-on-accent) !important;
+    border-color: transparent !important;
+}
+:root[data-brume-immersive='on'] #rightSendForm > #send_but:hover {
+    background: var(--brume-accent-deep) !important;
+}
+:root[data-brume-immersive='on'] #rightSendForm > #mes_stop {
+    background: color-mix(in srgb, #D69C7E 82%, transparent) !important;
+    color: #2A1710 !important;
+}

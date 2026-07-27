@@ -12,7 +12,7 @@
 
     const MODULE = 'st_brume';
     const LS_KEY = 'st_brume_settings';
-    const VERSION = '1.2.2';
+    const VERSION = '1.2.3';
 
     const DEFAULTS = Object.freeze({
         theme: 'aurora',     // aurora | aquarium | night

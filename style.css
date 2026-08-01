@@ -350,6 +350,28 @@
     border: none !important;
     box-shadow: none !important;
 }
+
+/* ── #sheld 的內距歸零：修「輸入托盤下緣與左右露出背景圖」──────
+   實機（iPhone PWA、ST 1.18）追出來的：#sheld 被加上了安全區內距，
+   底部 34pt、左右各約 3pt。內距區在「內容盒之外」，所以
+     · 子元素（輸入托盤是最後一個子元素）填不進去
+     · box-shadow 也印不進去（被 #sheld 的 overflow 裁在內容盒邊緣）
+   而那塊是透明的，背景圖就從托盤下緣與兩側透出來。
+   三個佐證同時成立才確定：外框線（邊框盒）到 850、托盤（內容盒）
+   只到 816、往下印的陰影完全不顯示。
+   這個內距不是 ST 加的（1.18 的 CSS 沒有任何 safe-area 規則），
+   也不是本主題加的——來自使用者安裝的其他擴充，所以這裡採用
+   「不管誰加的都歸零」的寫法。
+   歸零是安全的：輸入托盤自己已經有 padding-bottom:
+   max(env(safe-area-inset-bottom), 8px)，按鈕不會被 Home 指示條擋到。
+   附帶效果：那 34pt 直接還給聊天區。
+   選擇器沿用實機驗證過的 html body #sheld，另加 [data-foret] 讓它
+   只在主題啟用時生效（權重也因此更高，不會比驗證版本弱）。 */
+html[data-foret] body #sheld {
+    padding: 0 !important;
+    padding-block-end: 0 !important;
+    padding-inline: 0 !important;
+}
 :root[data-foret][data-foret-immersive='on'] #sheld {
     width: 100% !important;
     max-width: 100% !important;

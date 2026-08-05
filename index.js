@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.12.0';
+    const VERSION = '3.12.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -79,8 +79,38 @@
         document.documentElement.setAttribute('data-foret-bg', hasBg ? 'on' : 'off');
     }
 
+    // Android 的系統狀態列（上）與手勢導航列（下）是拿 theme-color
+    // 上色的，CSS 管不到。ST 寫死 <meta name="theme-color" content="#333">
+    // （manifest 還是 #202124），Android 玩家就會在上下各看到一條灰帶。
+    // 執行期改這個 meta 是即時生效的，連已安裝的 PWA 都會蓋過 manifest；
+    // iOS 不吃這個值（狀態列透出網頁背景），所以 iOS 看不到灰帶、
+    // 改了也無副作用。停用主題時還原 ST 原本的值。
+    let themeColorOrig;   // undefined = 尚未動過；null = 原本沒有這個 meta
+    function syncThemeColor() {
+        try {
+            let meta = document.querySelector('meta[name="theme-color"]');
+            if (settings.enabled) {
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.setAttribute('name', 'theme-color');
+                    document.head.appendChild(meta);
+                    if (themeColorOrig === undefined) themeColorOrig = null;
+                } else if (themeColorOrig === undefined) {
+                    themeColorOrig = meta.getAttribute('content');
+                }
+                // 用頭部的可可色：狀態列緊貼頭部，這條接縫最顯眼
+                meta.setAttribute('content', '#33211C');
+            } else if (meta && themeColorOrig !== undefined) {
+                if (themeColorOrig === null) meta.remove();
+                else meta.setAttribute('content', themeColorOrig);
+                themeColorOrig = undefined;
+            }
+        } catch (_) { }
+    }
+
     function apply() {
         const html = document.documentElement;
+        syncThemeColor();
         if (!settings.enabled) {
             html.removeAttribute('data-foret');
             html.removeAttribute('data-foret-immersive');

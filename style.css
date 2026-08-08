@@ -1879,3 +1879,152 @@ html[data-foret] body #sheld {
         overflow-y: auto;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   上下文用量（試作）
+   呈現方式依資料視覺化規範決定：
+     · 單一比例對上限 → 量表（meter），不是圓餅
+     · 四個抬頭數字 → 統計磚
+     · 各項佔用 → 部分對全體 → 一條堆疊長條，段間 2px 底色空隙
+     · 不用五個分類色：主題色票實測過不了分類色檢驗（焦糖↔開心果
+       正常視力 ΔE 僅 14.5 < 15），改用強調式——只有「聊天記錄」
+       上櫻桃色，其餘為明度單調遞減的中性可可階；識別靠文字標籤。
+       五色對 #241713 的對比 3.29～7.59，皆 ≥3:1。
+   ═══════════════════════════════════════════════════════════════ */
+#foret-header .fh-ctx {
+    flex: none;
+    min-width: 44px;
+    height: 30px;
+    padding: 0 9px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    color: var(--fn-caramel);
+    background: var(--fn-cake-2);
+    border: 1px solid var(--fn-line);
+    transition: background .18s, color .18s, border-color .18s;
+}
+#foret-header .fh-ctx:hover { background: var(--fn-cake-3); color: var(--fn-cream); }
+#foret-header .fh-ctx[data-level='warm'] { color: #E2C08A; border-color: rgba(226, 192, 138, .5); }
+#foret-header .fh-ctx[data-level='hot'] {
+    color: var(--fn-on-cherry);
+    background: var(--fn-cherry);
+    border-color: var(--fn-cherry);
+}
+
+#foret-ctx {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 76px;
+    z-index: 3400;
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--fn-cake);
+    border: 1px solid var(--fn-line-2);
+    border-radius: var(--fn-r-l);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .6);
+    color: var(--fn-cream);
+    padding: 14px 16px 13px;
+    max-height: 72dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+#foret-ctx .fx-head { display: flex; align-items: baseline; gap: 9px; }
+#foret-ctx .fx-title { font-weight: 700; font-size: 15px; }
+#foret-ctx .fx-sub {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--fn-cocoa);
+    font-variant-numeric: tabular-nums;
+}
+#foret-ctx .fx-x {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--fn-line);
+    background: transparent;
+    color: var(--fn-caramel);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+#foret-ctx .fx-x:hover { background: var(--fn-cake-3); color: var(--fn-cream); }
+
+/* 量表：單一比例對上限。狀態色同時附百分比文字，不靠顏色單獨表意 */
+#foret-ctx .fx-meter {
+    margin: 11px 0 12px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .3);
+    overflow: hidden;
+}
+#foret-ctx .fx-meter > i { display: block; height: 100%; border-radius: 999px; background: var(--fn-pistachio-2); }
+#foret-ctx .fx-meter.warm > i { background: #E2C08A; }
+#foret-ctx .fx-meter.hot > i { background: var(--fn-cherry); }
+
+/* 統計磚 */
+#foret-ctx .fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+#foret-ctx .fx-tile {
+    background: var(--fn-cake-2);
+    border: 1px solid var(--fn-line);
+    border-radius: var(--fn-r-s);
+    padding: 8px 6px 7px;
+    text-align: center;
+    min-width: 0;
+}
+#foret-ctx .fx-tile b {
+    display: block;
+    font-size: 16px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+#foret-ctx .fx-tile span { display: block; margin-top: 2px; font-size: 10.5px; color: var(--fn-cocoa); }
+
+/* 部分對全體：一條堆疊長條，段間留 2px 底色空隙 */
+#foret-ctx .fx-stack {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+    margin: 13px 0 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, .3);
+}
+#foret-ctx .fx-stack > i { display: block; min-width: 2px; }
+
+#foret-ctx .fx-rows { display: grid; gap: 6px; }
+#foret-ctx .fx-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+#foret-ctx .fx-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+#foret-ctx .fx-name { flex: none; width: 62px; color: var(--fn-caramel); }
+#foret-ctx .fx-track {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .28);
+    overflow: hidden;
+}
+#foret-ctx .fx-track > i { display: block; height: 100%; border-radius: 999px; }
+#foret-ctx .fx-val {
+    flex: none;
+    width: 54px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--fn-cream);
+}
+#foret-ctx .fx-note {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--fn-line);
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--fn-cocoa);
+}

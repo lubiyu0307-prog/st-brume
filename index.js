@@ -20,6 +20,7 @@
         texture: true,      // 巧克力屑底紋（沒有背景圖時）
         compact: false,     // 緊湊行距
         diag: false,        // 空回診斷（預設關；唯讀觀察，不改請求／回應）
+        ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
     });
 
     function getContext() {
@@ -200,6 +201,160 @@
                 if (t !== node.nodeValue) node.nodeValue = t;
             }
         }
+    }
+
+    // ── 上下文用量 ─────────────────────────────────────────────
+    // 資料全部來自 ST 開放給擴充的 API（st-context.js）：
+    //   maxContext／getTokenCountAsync／getCharacterCardFields
+    //   ／getWorldInfoPrompt／chat
+    // 沒有逆向、沒有讀私有變數。
+    // 呈現方式依資料視覺化規範決定，不是照抄別人的畫面：
+    //   · 「用了幾成」是單一比例對上限 → 量表（meter），不是圓餅
+    //   · 四個抬頭數字 → 統計磚（KPI 列）
+    //   · 各項佔用 → 部分對全體 → 一條堆疊長條，段間留 2px 空隙
+    //   · 五個分項不用五個分類色：主題色票實測過不了分類色檢驗
+    //     （焦糖↔開心果正常視力 ΔE 僅 14.5，低於 15 的硬底線），
+    //     改用「強調式」——只有「聊天記錄」用櫻桃色，因為它是唯一
+    //     會持續長大、也是使用者唯一能處理的項目（做記憶）；
+    //     其餘用明度單調遞減的中性可可階，識別靠文字標籤而非顏色。
+    //     五色對底色 #241713 的對比皆 ≥3:1（實測 3.29～7.59）。
+    const CTX_SEG = [
+        { key: 'history',   label: '聊天記錄', color: '#C8465A', hint: '會一直長大，可用 /nextmemory 壓成記憶' },
+        { key: 'character', label: '角色卡',   color: '#C9A489', hint: '角色描述、性格、場景、對話範例' },
+        { key: 'world',     label: '世界書',   color: '#A98873', hint: '這次被觸發的條目' },
+        { key: 'persona',   label: '人設',     color: '#8E7060', hint: '你自己的角色描述' },
+        { key: 'other',     label: '其他',     color: '#816655', hint: '系統提示、格式指令等' },
+    ];
+
+    const CTX_TOK = new Map();          // 文字 → token 數，避免重複計算
+    async function tok(ctx, text) {
+        const s = String(text || '');
+        if (!s) return 0;
+        if (CTX_TOK.has(s)) return CTX_TOK.get(s);
+        let n = 0;
+        try {
+            n = await ctx.getTokenCountAsync(s);
+        } catch (_) {
+            n = Math.ceil(s.length / 2);   // 取不到分詞器時的粗估
+        }
+        if (CTX_TOK.size > 300) CTX_TOK.clear();
+        CTX_TOK.set(s, n);
+        return n;
+    }
+
+    // 最近一次「真的送出去」的提示詞總量（由 CHAT_COMPLETION_PROMPT_READY 取得）
+    let ctxLastSent = null;
+
+    async function computeContextUsage() {
+        const ctx = getContext();
+        if (!ctx) return null;
+        const max = Number(ctx.maxContext) || 0;
+        if (!max) return null;
+
+        const genEl = document.getElementById('amount_gen');
+        const reserve = genEl ? (Number(genEl.value) || 0) : 0;
+
+        let fields = {};
+        try { if (ctx.getCharacterCardFields) fields = ctx.getCharacterCardFields() || {}; } catch (_) { }
+        const pick = (...keys) => keys
+            .map(k => (typeof fields[k] === 'string' ? fields[k] : ''))
+            .filter(Boolean).join('\n');
+
+        const charText = pick('description', 'personality', 'scenario', 'mesExamples',
+                              'system', 'jailbreak', 'charDepthPrompt');
+        const personaText = pick('persona');
+
+        let wiText = '';
+        try {
+            // isDryRun = true：只問不記，不會觸發 WORLD_INFO_ACTIVATED 事件
+            const r = await ctx.getWorldInfoPrompt(ctx.chat || [], max, true);
+            wiText = typeof r === 'string' ? r : String((r && r.worldInfoString) || '');
+        } catch (_) { }
+
+        const msgs = (ctx.chat || []).filter(m => m && !m.is_system);
+        const chatText = msgs.map(m => (m.name ? m.name + ': ' : '') + (m.mes || '')).join('\n');
+
+        const [character, persona, world, history] = await Promise.all([
+            tok(ctx, charText), tok(ctx, personaText), tok(ctx, wiText), tok(ctx, chatText),
+        ]);
+
+        const known = character + persona + world + history;
+        // 「其他」只有在量到真實送出量時才有意義——不憑空捏造數字
+        const other = (ctxLastSent && ctxLastSent > known) ? (ctxLastSent - known) : 0;
+        const prompt = known + other;
+
+        return {
+            max, reserve, prompt, measured: !!ctxLastSent,
+            used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
+            remaining: Math.max(0, max - prompt - reserve),
+            parts: { history, character, world, persona, other },
+            messages: msgs.length,
+        };
+    }
+
+    function fmt(n) { return Number(n).toLocaleString('en-US'); }
+
+    function renderContextPanel(u) {
+        const old = document.getElementById('foret-ctx');
+        if (old) old.remove();
+        if (!u) return;
+
+        const total = Math.max(1, u.prompt);
+        const segs = CTX_SEG.filter(s => u.parts[s.key] > 0);
+        // 堆疊長條：段與段之間留 2px 底色空隙（規範的 mark spec）
+        const bar = segs.map(s =>
+            `<i style="flex:${u.parts[s.key]} 0 0;background:${s.color}" title="${s.label}"></i>`).join('');
+
+        const rows = CTX_SEG.map(s => {
+            const v = u.parts[s.key];
+            const pct = Math.round(v / total * 100);
+            return '<div class="fx-row">'
+                + `<span class="fx-dot" style="background:${s.color}"></span>`
+                + `<span class="fx-name">${s.label}</span>`
+                + `<span class="fx-track"><i style="width:${pct}%;background:${s.color}"></i></span>`
+                + `<span class="fx-val">${fmt(v)}</span>`
+                + '</div>';
+        }).join('');
+
+        const level = u.used >= 90 ? 'hot' : (u.used >= 70 ? 'warm' : 'ok');
+        const box = document.createElement('div');
+        box.id = 'foret-ctx';
+        box.innerHTML =
+            '<div class="fx-head">'
+            + '  <span class="fx-title">上下文用量</span>'
+            + `  <span class="fx-sub">${fmt(u.prompt)} / ${fmt(u.max)} tokens</span>`
+            + '  <button type="button" class="fx-x" title="關閉">✕</button>'
+            + '</div>'
+            // 單一比例對上限 → 量表
+            + `<div class="fx-meter ${level}"><i style="width:${u.used}%"></i></div>`
+            + '<div class="fx-tiles">'
+            + `  <div class="fx-tile"><b>${u.used}%</b><span>已用</span></div>`
+            + `  <div class="fx-tile"><b>${fmt(u.remaining)}</b><span>剩餘</span></div>`
+            + `  <div class="fx-tile"><b>${fmt(u.reserve)}</b><span>預留回覆</span></div>`
+            + `  <div class="fx-tile"><b>${fmt(u.messages)}</b><span>訊息則數</span></div>`
+            + '</div>'
+            + `<div class="fx-stack">${bar}</div>`
+            + `<div class="fx-rows">${rows}</div>`
+            + '<div class="fx-note">'
+            + (u.measured
+                ? '已對照上次實際送出的提示詞，「其他」為系統提示等差額。'
+                : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。')
+            + '</div>';
+        document.body.appendChild(box);
+        box.querySelector('.fx-x').addEventListener('click', () => box.remove());
+    }
+
+    async function refreshCtxChip() {
+        const chip = document.querySelector('#foret-header .fh-ctx');
+        if (!chip) return;
+        if (!settings.ctxmeter) { chip.style.display = 'none'; return; }
+        chip.style.display = '';
+        try {
+            const u = await computeContextUsage();
+            if (!u) { chip.textContent = '—'; return; }
+            chip.textContent = u.used + '%';
+            chip.dataset.level = u.used >= 90 ? 'hot' : (u.used >= 70 ? 'warm' : 'ok');
+        } catch (_) { }
     }
 
     // ── 等待動畫：滾動的櫻桃 ───────────────────────────────────
@@ -731,6 +886,7 @@
             //（img 是取代元素，偽元素不會算圖）
             '<span class="fh-ava"><img class="fh-avatar" alt="" /></span>' +
             '<div class="fh-text"><div class="fh-name"></div><div class="fh-sub"></div></div>' +
+            '<div class="fh-ctx" title="上下文用量">—</div>' +
             '<div class="fh-btn fh-tools fa-solid fa-sliders" title="工具列"></div>';
         document.body.appendChild(el);
 
@@ -738,6 +894,14 @@
             const html = document.documentElement;
             if (html.getAttribute('data-foret-tools') === 'on') html.removeAttribute('data-foret-tools');
             else html.setAttribute('data-foret-tools', 'on');
+        });
+        el.querySelector('.fh-ctx').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (document.getElementById('foret-ctx')) {
+                document.getElementById('foret-ctx').remove();
+                return;
+            }
+            try { renderContextPanel(await computeContextUsage()); } catch (_) { }
         });
     }
 
@@ -794,12 +958,28 @@
                     setTimeout(markWaiting, 120);
                     setTimeout(markWaiting, 500);
                 }));
+                // 量到「真的送出去」的提示詞總量，用來校準估算值
+                const ready = ctx.event_types.CHAT_COMPLETION_PROMPT_READY;
+                if (ready) {
+                    ctx.eventSource.on(ready, async (data) => {
+                        try {
+                            const arr = data && Array.isArray(data.chat) ? data.chat : null;
+                            if (!arr) return;
+                            const text = arr.map(m => String((m && m.content) || '')).join('\n');
+                            ctxLastSent = await tok(ctx, text);
+                        } catch (_) { }
+                    });
+                }
+                [ctx.event_types.CHAT_CHANGED, ctx.event_types.MESSAGE_SENT,
+                 ctx.event_types.MESSAGE_RECEIVED, ctx.event_types.MESSAGE_DELETED]
+                    .filter(Boolean)
+                    .forEach(e => ctx.eventSource.on(e, () => setTimeout(refreshCtxChip, 250)));
             }
         } catch (_) { }
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
         setInterval(() => {
             detectBackground(); tradifyMenus(); fixExtensionsPopupLayout();
-            markDaySeparators(); markWaiting();
+            markDaySeparators(); markWaiting(); refreshCtxChip();
         }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
@@ -874,6 +1054,8 @@
             checkboxRow('foret_immersive', '沉浸模式（收起工具列，改用角色頭部）', settings.immersive, '工具圖示列改由頭部的滑桿鈕點開，功能不減') +
             checkboxRow('foret_texture', '巧克力屑底紋', settings.texture, '設有背景圖時自動讓位') +
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
+            checkboxRow('foret_ctxmeter', '上下文用量（頭部顯示百分比，點開看細項）', settings.ctxmeter,
+                '資料取自 ST 開放的 API：maxContext／getTokenCountAsync／角色卡欄位／世界書') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
                 '只讀取回應副本來顯示 finish_reason／安全阻擋／token 用量，不修改請求或回應') +
             '    </div>' +
@@ -893,6 +1075,7 @@
         bind('foret_texture', 'texture');
         bind('foret_compact', 'compact');
         bind('foret_diag', 'diag');
+        bind('foret_ctxmeter', 'ctxmeter');
     }
 
     function init() {
@@ -904,6 +1087,7 @@
         hookEvents();
         apply();
         buildPanel();
+        setTimeout(refreshCtxChip, 1200);
         let tries = 0;
         const retry = setInterval(() => {
             buildPanel();

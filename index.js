@@ -245,6 +245,15 @@
     // 最近一次「真的送出去」的提示詞總量（由 CHAT_COMPLETION_PROMPT_READY 取得）
     let ctxLastSent = null;
 
+    // 單則訊息的粗估（只拿來算「各則之間的比例」，總量另以真分詞器校準；
+    // 中日韓字約一字一 token，其餘四字元一 token）
+    function estTok(s) {
+        s = String(s || '');
+        let cjk = 0;
+        for (const ch of s) if (ch.charCodeAt(0) > 0x2E7F) cjk++;
+        return cjk + Math.ceil((s.length - cjk) / 4) || 1;
+    }
+
     async function computeContextUsage() {
         const ctx = getContext();
         if (!ctx) return null;
@@ -272,13 +281,36 @@
         } catch (_) { }
 
         const msgs = (ctx.chat || []).filter(m => m && !m.is_system);
-        const chatText = msgs.map(m => (m.name ? m.name + ': ' : '') + (m.mes || '')).join('\n');
+        const msgText = m => (m.name ? m.name + ': ' : '') + (m.mes || '');
+        const chatText = msgs.map(msgText).join('\n');
 
-        const [character, persona, world, history] = await Promise.all([
+        const [character, persona, world, historyTotal] = await Promise.all([
             tok(ctx, charText), tok(ctx, personaText), tok(ctx, wiText), tok(ctx, chatText),
         ]);
 
-        const known = character + persona + world + history;
+        // 酒館不會把整部聊天記錄送出去——只塞「放得下」的最近訊息，
+        // 更舊的自動掉出視窗。這裡模擬同一套截斷：從最新往回收，
+        // 收到預算用完為止。單則用粗估算比例，整體再對真分詞器的
+        // 總量等比校準，避免對每一則各打一次分詞 API。
+        const fixed = character + persona + world;
+        const budget = Math.max(0, max - reserve - fixed);
+        const weights = msgs.map(m => {
+            const t = m && m.extra && Number(m.extra.token_count);
+            return (t && t > 0) ? t : estTok(msgText(m));
+        });
+        const estSum = weights.reduce((a, b) => a + b, 0);
+        const scale = estSum > 0 ? historyTotal / estSum : 0;
+        let history = 0, kept = 0;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            const t = weights[i] * scale;
+            if (history + t > budget) break;
+            history += t; kept++;
+        }
+        history = Math.round(history);
+        const dropped = msgs.length - kept;
+        const overflow = Math.max(0, historyTotal - history);
+
+        const known = fixed + history;
         // 「其他」只有在量到真實送出量時才有意義——不憑空捏造數字
         const other = (ctxLastSent && ctxLastSent > known) ? (ctxLastSent - known) : 0;
         const prompt = known + other;
@@ -288,7 +320,7 @@
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },
-            messages: msgs.length,
+            messages: msgs.length, kept, dropped, overflow, historyTotal,
         };
     }
 
@@ -331,14 +363,16 @@
             + `  <div class="fx-tile"><b>${u.used}%</b><span>已用</span></div>`
             + `  <div class="fx-tile"><b>${fmt(u.remaining)}</b><span>剩餘</span></div>`
             + `  <div class="fx-tile"><b>${fmt(u.reserve)}</b><span>預留回覆</span></div>`
-            + `  <div class="fx-tile"><b>${fmt(u.messages)}</b><span>訊息則數</span></div>`
+            + `  <div class="fx-tile"><b>${u.dropped > 0 ? fmt(u.kept) + '/' + fmt(u.messages) : fmt(u.messages)}</b><span>${u.dropped > 0 ? '窗內／全部訊息' : '訊息則數'}</span></div>`
             + '</div>'
             + `<div class="fx-stack">${bar}</div>`
             + `<div class="fx-rows">${rows}</div>`
             + '<div class="fx-note">'
-            + (u.measured
-                ? '已對照上次實際送出的提示詞，「其他」為系統提示等差額。'
-                : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。')
+            + (u.dropped > 0
+                ? `上下文已滿——最舊的 ${fmt(u.dropped)} 則（約 ${fmt(u.overflow)} tokens）已掉出模型視野，他記不得那些內容了。可用 /nextmemory 壓成記憶。`
+                : (u.measured
+                    ? '已對照上次實際送出的提示詞，「其他」為系統提示等差額。'
+                    : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。'))
             + '</div>';
         document.body.appendChild(box);
         box.querySelector('.fx-x').addEventListener('click', () => box.remove());

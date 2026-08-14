@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.1';
+    const VERSION = '3.14.2';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -334,11 +334,24 @@
         for (const k of CARD_KEYS) {
             if (fieldText[k] && wasSent(fieldText[k])) character += await tok(ctx, fieldText[k]);
         }
-        const persona = (fieldText.persona && wasSent(fieldText.persona))
+        let persona = (fieldText.persona && wasSent(fieldText.persona))
             ? await tok(ctx, fieldText.persona) : 0;
-        const [world, historyTotal] = await Promise.all([
+        let [world, historyTotal] = await Promise.all([
             tok(ctx, wiText), tok(ctx, chatText),
         ]);
+
+        // ST 幫每次生成都存了一本項目化帳（「提示詞項目化」彈窗讀的
+        // 那份，含各段原文與 token 統計，重開酒館也還在）。拿得到就
+        // 直接用它——連預設檔把世界書送兩次這類怪癖都被 ST 自己的
+        // 分桶吸收，與內建彈窗零差異。
+        let itemized = null;
+        try {
+            const arr = Array.isArray(ctx.itemizedPrompts) ? ctx.itemizedPrompts : null;
+            if (arr && arr.length) {
+                const oai = arr.filter(r => r && r.main_api === 'openai');
+                if (oai.length) itemized = oai.reduce((a, b) => (Number(a.mesId) >= Number(b.mesId) ? a : b));
+            }
+        } catch (_) { }
 
         // 酒館不會把整部聊天記錄送出去——只塞「放得下」的最近訊息，
         // 更舊的自動掉出視窗。這裡模擬同一套截斷：從最新往回收，
@@ -361,26 +374,53 @@
         simHistory = Math.round(simHistory);
         const dropped = msgs.length - kept;
 
-        // 聊天記錄：實測模式用「上次真的送出的 user／assistant token」，
-        // 再補上送出之後才新增的訊息（最常見：剛生成完的那則回覆）
         let history = simHistory;
-        if (measured) {
+        let other = 0;
+        if (itemized) {
+            // 照「提示詞項目化」彈窗（itemized-prompts.js 的 openai 分支）
+            // 一模一樣的公式分類，總量與彈窗的「提示詞中的總符元數」一致
+            const t = async s => await tok(ctx, String(s || ''));
+            const n = v => Number(v) || 0;
+            const descT = await t(itemized.charDescription);
+            const persT = await t(itemized.charPersonality);
+            const scenT = await t(itemized.scenarioText);
+            const personaT = await t(itemized.userPersona);
+            const worldT = await t(itemized.worldInfoString);
+            const beforeA = await t(itemized.beforeScenarioAnchor);
+            const afterA = await t(itemized.afterScenarioAnchor);
+            const promptAdj = n(itemized.oaiPromptTokens) - (beforeA + afterA) + n(itemized.oaiExamplesTokens);
+            const histT = n(itemized.oaiConversationTokens);
+            const total = n(itemized.oaiStartTokens) + promptAdj + n(itemized.oaiMainTokens)
+                + n(itemized.oaiNsfwTokens) + n(itemized.oaiBiasTokens) + n(itemized.oaiImpersonateTokens)
+                + n(itemized.oaiJailbreakTokens) + n(itemized.oaiNudgeTokens)
+                + histT + worldT + beforeA + afterA;
+            character = descT + persT + scenT + n(itemized.oaiExamplesTokens);
+            persona = personaT;
+            world = worldT;
+            // 帳本掛在該次生成的回覆上——把回覆本身與更晚的訊息補進聊天記錄
+            let extraTok = 0;
+            const fromIdx = Number(itemized.mesId);
+            const raw = ctx.chat || [];
+            for (let i = Math.max(0, fromIdx); i < raw.length; i++) {
+                const m = raw[i];
+                if (m && !m.is_system) extraTok += await tok(ctx, msgText(m));
+            }
+            history = histT + extraTok;
+            other = Math.max(0, total - character - persona - world - histT);
+        } else if (measured) {
+            // 後備：舊版 ST 沒公開 itemizedPrompts 時，用送出事件校準
             let extraTok = 0;
             for (const m of (ctx.chat || []).slice(ctxSentAtLen)) {
                 if (m && !m.is_system) extraTok += await tok(ctx, msgText(m));
             }
             history = ctxSentHistTok + extraTok;
+            other = Math.max(0, ctxLastSent - (character + persona + world + ctxSentHistTok));
         }
         const overflow = Math.max(0, historyTotal - history);
-
-        // 「其他」只有在量到真實送出量時才有意義——不憑空捏造數字
-        const other = measured
-            ? Math.max(0, ctxLastSent - (character + persona + world + ctxSentHistTok))
-            : 0;
         const prompt = character + persona + world + history + other;
 
         return {
-            max, reserve, prompt, measured,
+            max, reserve, prompt, measured: !!itemized || measured,
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },

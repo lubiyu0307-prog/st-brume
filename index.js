@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.13.3';
+    const VERSION = '3.14.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -242,8 +242,13 @@
         return n;
     }
 
-    // 最近一次「真的送出去」的提示詞總量（由 CHAT_COMPLETION_PROMPT_READY 取得）
-    let ctxLastSent = null;
+    // 最近一次「真的送出去」的提示詞（由 CHAT_COMPLETION_PROMPT_READY 取得）。
+    // 存全文是為了實測校準：逐欄位檢查「這段有沒有真的被送出」，
+    // 沒被預設檔送出的欄位（最常見：對話範例）就不計入。
+    let ctxLastSent = null;     // 總 token
+    let ctxSentText = '';       // 送出的全文
+    let ctxSentHistTok = 0;     // 其中 user／assistant 訊息的 token（= 真實聊天記錄）
+    let ctxSentAtLen = 0;       // 送出當下 ctx.chat 的長度（用來補算之後新增的訊息）
 
     // 單則訊息的粗估（只拿來算「各則之間的比例」，總量另以真分詞器校準；
     // 中日韓字約一字一 token，其餘四字元一 token）
@@ -280,13 +285,26 @@
 
         let fields = {};
         try { if (ctx.getCharacterCardFields) fields = ctx.getCharacterCardFields() || {}; } catch (_) { }
-        const pick = (...keys) => keys
-            .map(k => (typeof fields[k] === 'string' ? fields[k] : ''))
-            .filter(Boolean).join('\n');
-
-        const charText = pick('description', 'personality', 'scenario', 'mesExamples',
-                              'system', 'jailbreak', 'charDepthPrompt');
-        const personaText = pick('persona');
+        const subst = (s) => {
+            try { return ctx.substituteParams ? String(ctx.substituteParams(s)) : String(s); }
+            catch (_) { return String(s); }
+        };
+        // 逐欄位分開算——實測模式要能個別判斷「這欄有沒有真的被送出」。
+        // 巨集要先代換（{{user}}／{{char}}），否則跟送出的全文比對不上。
+        const CARD_KEYS = ['description', 'personality', 'scenario', 'mesExamples',
+                           'system', 'jailbreak', 'charDepthPrompt'];
+        const fieldText = {};
+        for (const k of CARD_KEYS.concat('persona')) {
+            fieldText[k] = (typeof fields[k] === 'string' && fields[k]) ? subst(fields[k]) : '';
+        }
+        const measured = !!(ctxLastSent && ctxSentText);
+        // 拿欄位開頭 80 字到實際送出的全文裡找——找得到才算數；
+        // 沒有實測資料（還沒送出過訊息）時一律先計入
+        const wasSent = (text) => {
+            if (!measured || !text) return true;
+            const probe = text.trim().slice(0, 80);
+            return probe ? ctxSentText.includes(probe) : false;
+        };
 
         const msgs = (ctx.chat || []).filter(m => m && !m.is_system);
         const msgText = m => (m.name ? m.name + ': ' : '') + (m.mes || '');
@@ -300,19 +318,26 @@
             const chatForWI = msgs.map(msgText).reverse();
             // isDryRun = true：只問不記，不會觸發 WORLD_INFO_ACTIVATED 事件
             const r = await ctx.getWorldInfoPrompt(chatForWI, Math.max(0, max - reserve), true, {
-                personaDescription: typeof fields.persona === 'string' ? fields.persona : '',
-                characterDescription: typeof fields.description === 'string' ? fields.description : '',
-                characterPersonality: typeof fields.personality === 'string' ? fields.personality : '',
-                characterDepthPrompt: typeof fields.charDepthPrompt === 'string' ? fields.charDepthPrompt : '',
-                scenario: typeof fields.scenario === 'string' ? fields.scenario : '',
+                personaDescription: fieldText.persona,
+                characterDescription: fieldText.description,
+                characterPersonality: fieldText.personality,
+                characterDepthPrompt: fieldText.charDepthPrompt,
+                scenario: fieldText.scenario,
                 creatorNotes: '',
                 trigger: 'normal',
             });
             wiText = typeof r === 'string' ? r : String((r && r.worldInfoString) || '');
         } catch (_) { }
 
-        const [character, persona, world, historyTotal] = await Promise.all([
-            tok(ctx, charText), tok(ctx, personaText), tok(ctx, wiText), tok(ctx, chatText),
+        // 逐欄位分詞：實測模式下只計「真的有被送出」的欄位
+        let character = 0;
+        for (const k of CARD_KEYS) {
+            if (fieldText[k] && wasSent(fieldText[k])) character += await tok(ctx, fieldText[k]);
+        }
+        const persona = (fieldText.persona && wasSent(fieldText.persona))
+            ? await tok(ctx, fieldText.persona) : 0;
+        const [world, historyTotal] = await Promise.all([
+            tok(ctx, wiText), tok(ctx, chatText),
         ]);
 
         // 酒館不會把整部聊天記錄送出去——只塞「放得下」的最近訊息，
@@ -327,23 +352,35 @@
         });
         const estSum = weights.reduce((a, b) => a + b, 0);
         const scale = estSum > 0 ? historyTotal / estSum : 0;
-        let history = 0, kept = 0;
+        let simHistory = 0, kept = 0;
         for (let i = msgs.length - 1; i >= 0; i--) {
             const t = weights[i] * scale;
-            if (history + t > budget) break;
-            history += t; kept++;
+            if (simHistory + t > budget) break;
+            simHistory += t; kept++;
         }
-        history = Math.round(history);
+        simHistory = Math.round(simHistory);
         const dropped = msgs.length - kept;
+
+        // 聊天記錄：實測模式用「上次真的送出的 user／assistant token」，
+        // 再補上送出之後才新增的訊息（最常見：剛生成完的那則回覆）
+        let history = simHistory;
+        if (measured) {
+            let extraTok = 0;
+            for (const m of (ctx.chat || []).slice(ctxSentAtLen)) {
+                if (m && !m.is_system) extraTok += await tok(ctx, msgText(m));
+            }
+            history = ctxSentHistTok + extraTok;
+        }
         const overflow = Math.max(0, historyTotal - history);
 
-        const known = fixed + history;
         // 「其他」只有在量到真實送出量時才有意義——不憑空捏造數字
-        const other = (ctxLastSent && ctxLastSent > known) ? (ctxLastSent - known) : 0;
-        const prompt = known + other;
+        const other = measured
+            ? Math.max(0, ctxLastSent - (character + persona + world + ctxSentHistTok))
+            : 0;
+        const prompt = character + persona + world + history + other;
 
         return {
-            max, reserve, prompt, measured: !!ctxLastSent,
+            max, reserve, prompt, measured,
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },
@@ -398,7 +435,7 @@
             + (u.dropped > 0
                 ? `上下文已滿——最舊的 ${fmt(u.dropped)} 則（約 ${fmt(u.overflow)} tokens）已掉出模型視野，他記不得那些內容了。可用 /nextmemory 壓成記憶。`
                 : (u.measured
-                    ? '已對照上次實際送出的提示詞，「其他」為系統提示等差額。'
+                    ? '已對照上次實際送出的提示詞——未被預設檔送出的欄位（如對話範例）不計入，「其他」為系統提示等差額。'
                     : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。'))
             + '</div>';
         document.body.appendChild(box);
@@ -1026,8 +1063,25 @@
                         try {
                             const arr = data && Array.isArray(data.chat) ? data.chat : null;
                             if (!arr) return;
-                            const text = arr.map(m => String((m && m.content) || '')).join('\n');
-                            ctxLastSent = await tok(ctx, text);
+                            // content 可能是多模態陣列（圖片＋文字），只取文字部分
+                            const text = m => {
+                                const c = m && m.content;
+                                if (typeof c === 'string') return c;
+                                if (Array.isArray(c)) return c
+                                    .map(p => (p && typeof p.text === 'string') ? p.text : '')
+                                    .filter(Boolean).join('\n');
+                                return '';
+                            };
+                            const all = arr.map(text).join('\n');
+                            const hist = arr
+                                .filter(m => m && (m.role === 'user' || m.role === 'assistant'))
+                                .map(text).join('\n');
+                            ctxSentText = all;
+                            const now = getContext();
+                            ctxSentAtLen = (now && now.chat ? now.chat : []).length;
+                            ctxLastSent = await tok(ctx, all);
+                            ctxSentHistTok = await tok(ctx, hist);
+                            setTimeout(refreshCtxChip, 250);
                         } catch (_) { }
                     });
                 }

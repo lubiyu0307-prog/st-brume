@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.13.1';
+    const VERSION = '3.13.3';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -288,16 +288,28 @@
                               'system', 'jailbreak', 'charDepthPrompt');
         const personaText = pick('persona');
 
-        let wiText = '';
-        try {
-            // isDryRun = true：只問不記，不會觸發 WORLD_INFO_ACTIVATED 事件
-            const r = await ctx.getWorldInfoPrompt(ctx.chat || [], max, true);
-            wiText = typeof r === 'string' ? r : String((r && r.worldInfoString) || '');
-        } catch (_) { }
-
         const msgs = (ctx.chat || []).filter(m => m && !m.is_system);
         const msgText = m => (m.name ? m.name + ': ' : '') + (m.mes || '');
         const chatText = msgs.map(msgText).join('\n');
+
+        let wiText = '';
+        try {
+            // 掃描器吃的是「字串陣列、新到舊」（script.js 的 chatForWI 格式），
+            // 傳原始訊息物件進去，關鍵字條目會永遠掃不中。
+            // globalScanData 的欄位形狀照抄 script.js 送的那份。
+            const chatForWI = msgs.map(msgText).reverse();
+            // isDryRun = true：只問不記，不會觸發 WORLD_INFO_ACTIVATED 事件
+            const r = await ctx.getWorldInfoPrompt(chatForWI, Math.max(0, max - reserve), true, {
+                personaDescription: typeof fields.persona === 'string' ? fields.persona : '',
+                characterDescription: typeof fields.description === 'string' ? fields.description : '',
+                characterPersonality: typeof fields.personality === 'string' ? fields.personality : '',
+                characterDepthPrompt: typeof fields.charDepthPrompt === 'string' ? fields.charDepthPrompt : '',
+                scenario: typeof fields.scenario === 'string' ? fields.scenario : '',
+                creatorNotes: '',
+                trigger: 'normal',
+            });
+            wiText = typeof r === 'string' ? r : String((r && r.worldInfoString) || '');
+        } catch (_) { }
 
         const [character, persona, world, historyTotal] = await Promise.all([
             tok(ctx, charText), tok(ctx, personaText), tok(ctx, wiText), tok(ctx, chatText),

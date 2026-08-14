@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.3';
+    const VERSION = '3.14.4';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -259,6 +259,44 @@
         return cjk + Math.ceil((s.length - cjk) / 4) || 1;
     }
 
+    // 唯讀撈 ST 的項目化帳本（localforage 實例『SillyTavern_Prompts』）。
+    // 只在資料庫已存在時才開（避免平白創出空庫）；快取 2.5 秒，
+    // 3 秒輪詢不會狂敲 IndexedDB。
+    const LEDGER_CACHE = { chatId: null, at: 0, data: null };
+    async function readPromptLedger(chatId) {
+        const now = Date.now();
+        if (LEDGER_CACHE.chatId === chatId && now - LEDGER_CACHE.at < 2500) return LEDGER_CACHE.data;
+        let data = null;
+        try {
+            if (typeof indexedDB === 'undefined') return null;
+            if (indexedDB.databases) {
+                const dbs = await indexedDB.databases();
+                if (!dbs.some(d => d && d.name === 'SillyTavern_Prompts')) {
+                    LEDGER_CACHE.chatId = chatId; LEDGER_CACHE.at = now; LEDGER_CACHE.data = null;
+                    return null;
+                }
+            }
+            data = await new Promise((resolve) => {
+                const open = indexedDB.open('SillyTavern_Prompts');
+                open.onerror = () => resolve(null);
+                open.onblocked = () => resolve(null);
+                open.onsuccess = () => {
+                    const db = open.result;
+                    try {
+                        const names = db.objectStoreNames;
+                        const store = names.contains('keyvaluepairs') ? 'keyvaluepairs' : names[0];
+                        if (!store) { db.close(); return resolve(null); }
+                        const req = db.transaction(store, 'readonly').objectStore(store).get(chatId);
+                        req.onsuccess = () => { db.close(); resolve(Array.isArray(req.result) ? req.result : null); };
+                        req.onerror = () => { db.close(); resolve(null); };
+                    } catch (_) { try { db.close(); } catch (_) { } resolve(null); }
+                };
+            });
+        } catch (_) { data = null; }
+        LEDGER_CACHE.chatId = chatId; LEDGER_CACHE.at = now; LEDGER_CACHE.data = data;
+        return data;
+    }
+
     async function computeContextUsage() {
         const ctx = getContext();
         if (!ctx) return null;
@@ -344,9 +382,16 @@
         // 那份，含各段原文與 token 統計，重開酒館也還在）。拿得到就
         // 直接用它——連預設檔把世界書送兩次這類怪癖都被 ST 自己的
         // 分桶吸收，與內建彈窗零差異。
+        // staging 版 context 直接公開 itemizedPrompts；release 版沒有，
+        // 但帳本本人存在 localforage『SillyTavern_Prompts』（IndexedDB，
+        // key 為聊天 ID）——沒出口就自己去唯讀撈同一本。
         let itemized = null;
         try {
-            const arr = Array.isArray(ctx.itemizedPrompts) ? ctx.itemizedPrompts : null;
+            let arr = Array.isArray(ctx.itemizedPrompts) ? ctx.itemizedPrompts : null;
+            if (!arr || !arr.length) {
+                const chatId = (typeof ctx.getCurrentChatId === 'function' ? ctx.getCurrentChatId() : ctx.chatId) || '';
+                if (chatId) arr = await readPromptLedger(String(chatId));
+            }
             if (arr && arr.length) {
                 const oai = arr.filter(r => r && r.main_api === 'openai');
                 if (oai.length) itemized = oai.reduce((a, b) => (Number(a.mesId) >= Number(b.mesId) ? a : b));

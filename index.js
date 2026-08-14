@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.4';
+    const VERSION = '3.14.5';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -1174,6 +1174,16 @@
                             ctxSentHistTok = await tok(ctx, hist);
                             setTimeout(refreshCtxChip, 250);
                         } catch (_) { }
+                    });
+                }
+                // 換聊天時必須把事件校準的記憶歸零——那是「上一個聊天」
+                // 的實測帳，帶過來會讓全新聊天顯示舊聊天的用量
+                if (ctx.event_types.CHAT_CHANGED) {
+                    ctx.eventSource.on(ctx.event_types.CHAT_CHANGED, () => {
+                        ctxLastSent = null;
+                        ctxSentText = '';
+                        ctxSentHistTok = 0;
+                        ctxSentAtLen = 0;
                     });
                 }
                 [ctx.event_types.CHAT_CHANGED, ctx.event_types.MESSAGE_SENT,

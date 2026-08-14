@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.12.1';
+    const VERSION = '3.13.2';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -21,6 +21,9 @@
         compact: false,     // 緊湊行距
         diag: false,        // 空回診斷（預設關；唯讀觀察，不改請求／回應）
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
+        ctxmax: 0,          // 上下文上限手動覆蓋（0＝跟隨酒館設定）；
+                            // 給「預設檔一直把上下文長度蓋回解鎖值」的人用，
+                            // 只影響面板的百分比與警告，不影響實際送出
     });
 
     function getContext() {
@@ -278,6 +281,12 @@
         if (!max) max = Number(ctx.maxContext) || 0;
         if (!max) return null;
 
+        // 手動覆蓋：顯示與警告用使用者定的上限，但訊息截斷模擬仍照
+        // 酒館真正的設定跑——酒館覺得放得下的，就真的會送出去。
+        const stMax = max;
+        const manual = Number(settings.ctxmax) > 0 ? Number(settings.ctxmax) : 0;
+        if (manual) max = manual;
+
         let fields = {};
         try { if (ctx.getCharacterCardFields) fields = ctx.getCharacterCardFields() || {}; } catch (_) { }
         const pick = (...keys) => keys
@@ -308,7 +317,7 @@
         // 收到預算用完為止。單則用粗估算比例，整體再對真分詞器的
         // 總量等比校準，避免對每一則各打一次分詞 API。
         const fixed = character + persona + world;
-        const budget = Math.max(0, max - reserve - fixed);
+        const budget = Math.max(0, stMax - reserve - fixed);
         const weights = msgs.map(m => {
             const t = m && m.extra && Number(m.extra.token_count);
             return (t && t > 0) ? t : estTok(msgText(m));
@@ -331,7 +340,7 @@
         const prompt = known + other;
 
         return {
-            max, reserve, prompt, measured: !!ctxLastSent,
+            max, stMax, manual: !!manual, reserve, prompt, measured: !!ctxLastSent,
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },
@@ -383,6 +392,7 @@
             + `<div class="fx-stack">${bar}</div>`
             + `<div class="fx-rows">${rows}</div>`
             + '<div class="fx-note">'
+            + (u.manual ? `上限採黑森林設定的手動值（酒館目前設 ${fmt(u.stMax)}）。` : '')
             + (u.dropped > 0
                 ? `上下文已滿——最舊的 ${fmt(u.dropped)} 則（約 ${fmt(u.overflow)} tokens）已掉出模型視野，他記不得那些內容了。可用 /nextmemory 壓成記憶。`
                 : (u.measured
@@ -1105,6 +1115,11 @@
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
             checkboxRow('foret_ctxmeter', '上下文用量（頭部顯示百分比，點開看細項）', settings.ctxmeter,
                 '資料取自 ST 開放的 API：maxContext／getTokenCountAsync／角色卡欄位／世界書') +
+            '<label class="flex-container alignItemsCenter" for="foret_ctxmax" style="gap:8px;margin:0" ' +
+            'title="預設檔一直把「上下文長度」蓋回解鎖值時，可在這裡固定面板計算用的上限。只影響百分比與警告的顯示，不影響實際送出。">' +
+            '<span style="flex:1">　└ 上限手動覆蓋（0＝跟隨酒館）</span>' +
+            `<input id="foret_ctxmax" type="number" min="0" step="1000" value="${Number(settings.ctxmax) || 0}" class="text_pole" style="width:110px;flex:none">` +
+            '</label>' +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
                 '只讀取回應副本來顯示 finish_reason／安全阻擋／token 用量，不修改請求或回應') +
             '    </div>' +
@@ -1125,6 +1140,12 @@
         bind('foret_compact', 'compact');
         bind('foret_diag', 'diag');
         bind('foret_ctxmeter', 'ctxmeter');
+        panel.querySelector('#foret_ctxmax').addEventListener('change', (e) => {
+            settings.ctxmax = Math.max(0, Number(e.target.value) || 0);
+            e.target.value = settings.ctxmax;
+            saveSettings();
+            refreshCtxChip();
+        });
     }
 
     function init() {

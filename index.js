@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.0';
+    const VERSION = '3.14.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -1061,6 +1061,9 @@
                 if (ready) {
                     ctx.eventSource.on(ready, async (data) => {
                         try {
+                            // 乾跑（dry run）也會發這個事件——酒館算 token 條、
+                            // 開聊天時都會乾跑，內容可能與真實送出不同，必須跳過
+                            if (data && data.dryRun) return;
                             const arr = data && Array.isArray(data.chat) ? data.chat : null;
                             if (!arr) return;
                             // content 可能是多模態陣列（圖片＋文字），只取文字部分

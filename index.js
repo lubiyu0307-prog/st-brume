@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.2';
+    const VERSION = '3.14.3';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -421,6 +421,8 @@
 
         return {
             max, reserve, prompt, measured: !!itemized || measured,
+            // 資料源標記：一眼分辨走的是哪條計算路徑（除錯與回報用）
+            source: itemized ? '帳本' : (measured ? '事件' : '估算'),
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },
@@ -477,6 +479,7 @@
                 : (u.measured
                     ? '已對照上次實際送出的提示詞——未被預設檔送出的欄位（如對話範例）不計入，「其他」為系統提示等差額。'
                     : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。'))
+            + `（v${VERSION}·${u.source}）`
             + '</div>';
         document.body.appendChild(box);
         box.querySelector('.fx-x').addEventListener('click', () => box.remove());

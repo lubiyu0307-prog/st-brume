@@ -257,11 +257,26 @@
     async function computeContextUsage() {
         const ctx = getContext();
         if (!ctx) return null;
-        const max = Number(ctx.maxContext) || 0;
-        if (!max) return null;
 
-        const genEl = document.getElementById('amount_gen');
-        const reserve = genEl ? (Number(genEl.value) || 0) : 0;
+        // 上限與預留回覆依 API 模式取值（script.js getMaxContextTokens／
+        // getMaxResponseTokens 的同一套規則）：聊天補全（main_api ==
+        // 'openai'，Claude／Gemini 皆屬之）用 openai_max_context 與
+        // openai_max_tokens；其餘用 max_context 與 amount_gen。
+        // ctx.maxContext 只回報 max_context，在聊天補全下是錯的值。
+        const readNum = id => {
+            const el = document.getElementById(id);
+            return el ? (Number(el.value) || 0) : 0;
+        };
+        let max, reserve;
+        if (String(ctx.mainApi) === 'openai') {
+            max = readNum('openai_max_context');
+            reserve = readNum('openai_max_tokens');
+        } else {
+            max = Number(ctx.maxContext) || 0;
+            reserve = readNum('amount_gen');
+        }
+        if (!max) max = Number(ctx.maxContext) || 0;
+        if (!max) return null;
 
         let fields = {};
         try { if (ctx.getCharacterCardFields) fields = ctx.getCharacterCardFields() || {}; } catch (_) { }

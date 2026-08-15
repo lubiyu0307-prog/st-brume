@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.6';
+    const VERSION = '3.14.7';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -394,7 +394,22 @@
             }
             if (arr && arr.length) {
                 const oai = arr.filter(r => r && r.main_api === 'openai');
-                if (oai.length) itemized = oai.reduce((a, b) => (Number(a.mesId) >= Number(b.mesId) ? a : b));
+                // 大量刪訊息／記憶壓縮不會清帳，帳本裡可能殘留「已被
+                // 刪掉的訊息」的舊記錄——挑 mesId 最大會挑到幽靈
+                //（實測：聊天 11 則卻選中 @29 的三十則時代舊帳）。
+                // 對齊彈窗的找法：最新一則 AI 回覆的索引，取那一筆；
+                // 找不到才在「索引仍存在」的記錄裡挑最大。
+                const raw = ctx.chat || [];
+                let lastAi = -1;
+                for (let i = raw.length - 1; i >= 0; i--) {
+                    const m = raw[i];
+                    if (m && !m.is_user && !m.is_system) { lastAi = i; break; }
+                }
+                itemized = oai.find(r => Number(r.mesId) === lastAi) || null;
+                if (!itemized) {
+                    const valid = oai.filter(r => Number(r.mesId) < raw.length);
+                    if (valid.length) itemized = valid.reduce((a, b) => (Number(a.mesId) >= Number(b.mesId) ? a : b));
+                }
             }
         } catch (_) { }
 

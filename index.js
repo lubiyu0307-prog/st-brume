@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.5';
+    const VERSION = '3.14.6';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -442,15 +442,11 @@
             character = descT + persT + scenT + n(itemized.oaiExamplesTokens);
             persona = personaT;
             world = worldT;
-            // 帳本掛在該次生成的回覆上——把回覆本身與更晚的訊息補進聊天記錄
-            let extraTok = 0;
-            const fromIdx = Number(itemized.mesId);
-            const raw = ctx.chat || [];
-            for (let i = Math.max(0, fromIdx); i < raw.length; i++) {
-                const m = raw[i];
-                if (m && !m.is_system) extraTok += await tok(ctx, msgText(m));
-            }
-            history = histT + extraTok;
+            // 聊天記錄直接取帳本數字，與內建彈窗完全一致。不做「補算
+            // 之後新增的訊息」——刪訊息／記憶壓縮會讓 mesId 位移，
+            // 按編號補算必然重複計算（實測多算過一萬）。代價只是
+            // 慢一則回覆，下次送出自動跟上。
+            history = histT;
             other = Math.max(0, total - character - persona - world - histT);
         } else if (measured) {
             // 後備：舊版 ST 沒公開 itemizedPrompts 時，用送出事件校準
@@ -466,8 +462,11 @@
 
         return {
             max, reserve, prompt, measured: !!itemized || measured,
-            // 資料源標記：一眼分辨走的是哪條計算路徑（除錯與回報用）
-            source: itemized ? '帳本' : (measured ? '事件' : '估算'),
+            // 資料源標記：一眼分辨走的是哪條計算路徑（除錯與回報用）；
+            // 帳本模式附上選中的記錄編號與聊天長度，追「補算範圍」的問題
+            source: itemized
+                ? `帳本@${itemized.mesId}/${(ctx.chat || []).length}`
+                : (measured ? '事件' : '估算'),
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },

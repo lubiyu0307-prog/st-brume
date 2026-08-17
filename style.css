@@ -2064,27 +2064,31 @@ html[data-foret] body #sheld {
 
 /* ═══════════════════════════════════════════════════════════════
    主題快捷（做記憶／再來一段）
-   掛在快捷列最前面。外觀沿用 .qr--button 的膠囊，但上櫻桃色調，
-   讓它跟使用者自己的快速回覆一眼分得出來——那是「主題提供的動作」，
-   不是他自己設的巨集。
+   與 ☰／魔法棒同一排的純圖示鈕，沿用該排的圓形外觀但上櫻桃色，
+   讓「主題提供的動作」與酒館原生的選單鈕分得出來。
+   比原生鈕小一號：那排要塞四顆，輸入框的寬度得留住。
    ═══════════════════════════════════════════════════════════════ */
-:root[data-foret] #qr--bar .fn-quick {
-    background: var(--fn-cherry-jam) !important;
-    border-color: var(--fn-cherry) !important;
+:root[data-foret] #leftSendForm > .fn-quick {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 13.5px !important;
     color: var(--fn-cherry-soft) !important;
-    font-weight: 600;
+    border-color: var(--fn-cherry-jam) !important;
 }
-:root[data-foret] #qr--bar .fn-quick:hover {
+:root[data-foret] #leftSendForm > .fn-quick:hover {
     background: var(--fn-cherry) !important;
     color: var(--fn-on-cherry) !important;
 }
-/* 沒有快捷列時退到輸入列左側，改用圓形圖示鈕（沿用該排的樣式） */
-:root[data-foret] #leftSendForm > .fn-quick {
-    color: var(--fn-cherry-soft) !important;
+@media (max-width: 500px) {
+    :root[data-foret] #leftSendForm > .fn-quick {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 12.5px !important;
+    }
 }
 /* 執行中／成功／失敗的短暫回饋 */
 :root[data-foret] .fn-quick { cursor: pointer; transition: opacity .18s, background .18s, color .18s; }
-:root[data-foret] .fn-quick.fn-quick-busy { opacity: .5; pointer-events: none; }
+:root[data-foret] .fn-quick.fn-quick-busy { opacity: .45; pointer-events: none; }
 :root[data-foret] .fn-quick.fn-quick-ok {
     background: var(--fn-pistachio-2) !important;
     border-color: var(--fn-pistachio-2) !important;

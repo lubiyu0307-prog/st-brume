@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.17.0';
+    const VERSION = '3.17.1';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -991,13 +991,13 @@
     // 一顆死鍵。
     const QUICK = [
         {
-            id: 'mem', cmd: 'nextmemory', label: '做記憶',
-            title: '把上一段記憶之後到現在壓成新記憶（不必自己標範圍）',
+            id: 'mem', cmd: 'nextmemory', icon: 'fa-book',
+            title: '做記憶：把上一段記憶之後到現在壓成新記憶（不必自己標範圍）',
             run: '/nextmemory',
         },
         {
-            id: 'more', cmd: 'trigger', label: '再來一段',
-            title: '讓他再生成一則新訊息，劇情繼續推進（不是續寫在同一個泡泡裡）',
+            id: 'more', cmd: 'trigger', icon: 'fa-forward',
+            title: '再來一段：讓他生成一則新訊息，劇情繼續推進（不是續寫在同一個泡泡裡）',
             run: '/trigger',
             // /trigger 會清空輸入框（防遞歸），先接住草稿再放回去
             keepDraft: true,
@@ -1032,26 +1032,30 @@
     }
 
     function addQuickButtons() {
-        const host = document.querySelector('#qr--bar > .qr--buttons')
-            || document.getElementById('leftSendForm');
-        if (!host) return;
-        const inQr = host.classList.contains('qr--buttons');
         if (!settings.quickbar) {
             document.querySelectorAll('.fn-quick').forEach(b => b.remove());
             return;
         }
+        // 固定掛在輸入列左側，與 ☰／魔法棒同一排：純圖示、不佔垂直空間。
+        // 早期版本會在快捷列還沒生成時先掉進這裡、之後又在快捷列補一份，
+        // 同一顆按鈕出現兩次——所以現在只認一個宿主，並清掉任何流落在
+        // 別處的殘留。
+        const host = document.getElementById('leftSendForm');
+        if (!host) return;
+        document.querySelectorAll('.fn-quick').forEach((b) => {
+            if (b.parentElement !== host) b.remove();
+        });
+
         const ctx = getContext();
-        // 反向插入，才能一路 prepend 成原本的順序
+        // 反向插入，才能一路 prepend 成 QUICK 宣告的順序
         for (const item of [...QUICK].reverse()) {
             const exists = host.querySelector(`.fn-quick[data-fn-quick="${item.id}"]`);
             if (!hasCommand(ctx, item.cmd)) { if (exists) exists.remove(); continue; }
-            if (exists) { if (host.firstChild !== exists) { /* 順序交給下面重排 */ } continue; }
+            if (exists) continue;
             const btn = document.createElement('div');
-            btn.className = 'fn-quick' + (inQr ? ' qr--button' : '');
+            btn.className = `fn-quick fa-solid ${item.icon}`;
             btn.dataset.fnQuick = item.id;
             btn.title = item.title;
-            btn.textContent = inQr ? item.label : '';
-            if (!inQr) btn.classList.add('fa-solid', item.id === 'mem' ? 'fa-bookmark' : 'fa-forward');
             host.prepend(btn);
         }
     }

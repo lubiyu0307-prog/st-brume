@@ -2362,3 +2362,64 @@ html[data-foret] body #sheld {
     color: var(--fn-on-cherry) !important;
     box-shadow: none !important;
 }
+
+/* ── 正午：彈出窗與清單縮圖一併方化 ─────────────────────────────
+   實機回報彈窗（擴充功能、Backgrounds）仍是大圓角。主題對 .popup
+   的圓角本來就走 token（霧藍下為 0），所以圓角是別的元素或別的
+   擴充畫的——這裡改用 html 開頭提高特異性，並把 dialog、popup 的
+   內層容器、縮圖一起指名，不再倚賴單一選擇器命中。 */
+html[data-foret][data-foret-skin='dusty'] dialog,
+html[data-foret][data-foret-skin='dusty'] .popup,
+html[data-foret][data-foret-skin='dusty'] .popup-body,
+html[data-foret][data-foret-skin='dusty'] .popup-content,
+html[data-foret][data-foret-skin='dusty'] .popup-controls,
+html[data-foret][data-foret-skin='dusty'] .dialogue_popup,
+html[data-foret][data-foret-skin='dusty'] .drawer-content,
+html[data-foret][data-foret-skin='dusty'] .inline-drawer-content,
+html[data-foret][data-foret-skin='dusty'] .inline-drawer-toggle,
+html[data-foret][data-foret-skin='dusty'] .inline-drawer-header,
+html[data-foret][data-foret-skin='dusty'] .menu_button,
+html[data-foret][data-foret-skin='dusty'] .text_pole,
+html[data-foret][data-foret-skin='dusty'] .right_menu_button,
+html[data-foret][data-foret-skin='dusty'] select,
+html[data-foret][data-foret-skin='dusty'] input,
+html[data-foret][data-foret-skin='dusty'] textarea,
+html[data-foret][data-foret-skin='dusty'] .bg_example,
+html[data-foret][data-foret-skin='dusty'] .bg_example img,
+html[data-foret][data-foret-skin='dusty'] .bg_button,
+html[data-foret][data-foret-skin='dusty'] .thumbnail,
+html[data-foret][data-foret-skin='dusty'] .avatar_list .avatar,
+html[data-foret][data-foret-skin='dusty'] .avatar_list .avatar img,
+html[data-foret][data-foret-skin='dusty'] .character_select .avatar,
+html[data-foret][data-foret-skin='dusty'] .character_select .avatar img,
+html[data-foret][data-foret-skin='dusty'] .extension_block {
+    border-radius: 0 !important;
+}
+/* 縮圖與清單項目：改用 2px 霧藍硬框（跟訊息明信片同一套語彙） */
+html[data-foret][data-foret-skin='dusty'] .bg_example,
+html[data-foret][data-foret-skin='dusty'] .extension_block {
+    border: 2px solid var(--fn-line) !important;
+}
+
+/* ── 正午：特異性補強 ─────────────────────────────────────────
+   上面那批用「html + 兩個屬性 + 一個 class」＝(0,3,1)，打不過主題
+   自己的巢狀規則如 :root[data-foret] .popup .menu_button ＝(0,4,0)
+  （class 級數量先比，4 > 3）。這裡逐條對齊同樣的巢狀深度再加一層，
+   把剩下寫死的 999px 與 50% 收乾淨。 */
+html[data-foret][data-foret-skin='dusty'] .popup .menu_button,
+html[data-foret][data-foret-skin='dusty'] .select2-container .select2-selection__choice,
+html[data-foret][data-foret-skin='dusty'] .recentChat .avatar img,
+html[data-foret][data-foret-skin='dusty'] .group_select .avatar img,
+html[data-foret][data-foret-skin='dusty'] .extensions_block .failure,
+html[data-foret][data-foret-skin='dusty'] #chat .mes .avatar,
+html[data-foret][data-foret-skin='dusty'] #chat .mes .avatar img,
+html[data-foret][data-foret-skin='dusty'] #foret-wait .fw-ava,
+html[data-foret][data-foret-skin='dusty'] #foret-wait .fw-ava img,
+html[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub::after,
+html[data-foret][data-foret-skin='dusty'] .tag {
+    border-radius: 2px !important;
+}
+/* 日期分隔的圓點換成方點 */
+html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
+    border-radius: 0 !important;
+}

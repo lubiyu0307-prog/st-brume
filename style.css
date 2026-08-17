@@ -2423,3 +2423,16 @@ html[data-foret][data-foret-skin='dusty'] .tag {
 html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     border-radius: 0 !important;
 }
+
+/* ── 正午：補齊酒館變數中主題原本沒接管的幾個 ─────────────────
+   更正一個誤判：SmartTheme 那組變數主題早就接管了（見本檔上方，
+   帶 !important 且走 --fn-* token），所以它們本來就跟著皮膚走——
+   Backgrounds 裡看起來像焦糖色的「全域」膠囊並不是殘留舊色，而是
+   鏽橘 #B0431A 以 30% 疊在砂色 #F2E3BC 上的結果（算出來是 #DEB38B，
+   與實機色值相符）。這裡只補主題原本沒設的幾個：頭貼圓角與勾選符號。 */
+:root[data-foret][data-foret-skin='dusty'] {
+    --SmartThemeCheckboxTickColorValue: #0C2740;
+    --avatar-base-border-radius: 2px;
+    --avatar-base-border-radius-round: 2px;
+    --avatar-base-border-radius-rounded: 2px;
+}

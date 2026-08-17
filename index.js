@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.18.1';
+    const VERSION = '3.18.2';
 
     // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -235,13 +235,30 @@
     //     會持續長大、也是使用者唯一能處理的項目（做記憶）；
     //     其餘用明度單調遞減的中性可可階，識別靠文字標籤而非顏色。
     //     五色對底色 #241713 的對比皆 ≥3:1（實測 3.29～7.59）。
+    // 五個分項的顏色是「行內樣式」，CSS 換膚碰不到，所以每套皮膚各一組。
+    // 兩套都照同一個設計邏輯：只有「聊天記錄」上強調色（它是唯一會持續
+    // 長大、也是使用者唯一能處理的項目），其餘是明度單調的中性階，
+    // 識別靠文字標籤而非顏色。對比皆實測 ≥3:1（非文字元件的門檻）。
+    const CTX_PALETTE = {
+        // 黑森林：櫻桃＋可可階，對 #241713 實測 3.29～7.59
+        foret: { history: '#C8465A', character: '#C9A489', world: '#A98873',
+                 persona: '#8E7060', other: '#816655' },
+        // 正午：鏽橘＋板岩階，對砂底 #F2E3BC 實測 3.55～8.15
+        //（招牌橘 #E4632A 對砂底只有 2.70，色帶會糊掉，所以用鏽橘）
+        dusty: { history: '#B0431A', character: '#5B7A92', world: '#4A6578',
+                 persona: '#43596B', other: '#31424F' },
+    };
     const CTX_SEG = [
-        { key: 'history',   label: '聊天記錄', color: '#C8465A', hint: '會一直長大，可用 /nextmemory 壓成記憶' },
-        { key: 'character', label: '角色卡',   color: '#C9A489', hint: '角色描述、性格、場景、對話範例' },
-        { key: 'world',     label: '世界書',   color: '#A98873', hint: '這次被觸發的條目' },
-        { key: 'persona',   label: '人設',     color: '#8E7060', hint: '你自己的角色描述' },
-        { key: 'other',     label: '其他',     color: '#816655', hint: '系統提示、格式指令等' },
+        { key: 'history',   label: '聊天記錄', hint: '會一直長大，可用 /nextmemory 壓成記憶' },
+        { key: 'character', label: '角色卡',   hint: '角色描述、性格、場景、對話範例' },
+        { key: 'world',     label: '世界書',   hint: '這次被觸發的條目' },
+        { key: 'persona',   label: '人設',     hint: '你自己的角色描述' },
+        { key: 'other',     label: '其他',     hint: '系統提示、格式指令等' },
     ];
+    function segColor(key) {
+        const p = CTX_PALETTE[settings.skin] || CTX_PALETTE.foret;
+        return p[key] || CTX_PALETTE.foret[key];
+    }
 
     const CTX_TOK = new Map();          // 文字 → token 數，避免重複計算
     async function tok(ctx, text) {
@@ -564,15 +581,15 @@
         const segs = CTX_SEG.filter(s => u.parts[s.key] > 0);
         // 堆疊長條：段與段之間留 2px 底色空隙（規範的 mark spec）
         const bar = segs.map(s =>
-            `<i style="flex:${u.parts[s.key]} 0 0;background:${s.color}" title="${s.label}"></i>`).join('');
+            `<i style="flex:${u.parts[s.key]} 0 0;background:${segColor(s.key)}" title="${s.label}"></i>`).join('');
 
         const rows = CTX_SEG.map(s => {
             const v = u.parts[s.key];
             const pct = Math.round(v / total * 100);
             return '<div class="fx-row">'
-                + `<span class="fx-dot" style="background:${s.color}"></span>`
+                + `<span class="fx-dot" style="background:${segColor(s.key)}"></span>`
                 + `<span class="fx-name">${s.label}</span>`
-                + `<span class="fx-track"><i style="width:${pct}%;background:${s.color}"></i></span>`
+                + `<span class="fx-track"><i style="width:${pct}%;background:${segColor(s.key)}"></i></span>`
                 + `<span class="fx-val">${fmt(v)}</span>`
                 + '</div>';
         }).join('');
@@ -995,6 +1012,37 @@
         const sameYear = d.getFullYear() === today.getFullYear();
         return (sameYear ? '' : d.getFullYear() + '年')
             + (d.getMonth() + 1) + '月' + d.getDate() + '日（週' + week + '）';
+    }
+
+    // ── 正午：把「圓角來源不明」的外殼就地方化 ───────────────────
+    // 彈窗與抽屜的圓角實機上壓不掉：主題對 .popup／.drawer-content
+    // 的規則在霧藍下確實解析為 0（已量測），但畫面仍是圓的——代表圓角
+    // 來自另一個容器或另一個擴充（酒館助手也在美化 UI，且可能比本主題
+    // 晚載入）。CSS 選不到祖先，所以這裡從彈窗往上走幾層，量到誰真的
+    // 圓就地補一條行內樣式；行內樣式贏過任何外部 CSS。
+    // 只在正午皮膚動手，切回黑森林時把動過的清乾淨。
+    const SQUARE_ANCHORS = 'dialog, .popup, .dialogue_popup, .drawer-content';
+    function squareShells() {
+        const on = settings.enabled && settings.skin === 'dusty';
+        if (!on) {
+            document.querySelectorAll('[data-fn-sq]').forEach((el) => {
+                el.style.removeProperty('border-radius');
+                el.removeAttribute('data-fn-sq');
+            });
+            return;
+        }
+        document.querySelectorAll(SQUARE_ANCHORS).forEach((el) => {
+            let n = el;
+            for (let i = 0; n && n !== document.body && i < 5; i++, n = n.parentElement) {
+                if (n.hasAttribute('data-fn-sq')) continue;
+                let r = 0;
+                try { r = parseFloat(getComputedStyle(n).borderTopLeftRadius) || 0; } catch (_) { }
+                if (r > 4) {
+                    n.style.setProperty('border-radius', '0', 'important');
+                    n.setAttribute('data-fn-sq', '');
+                }
+            }
+        });
     }
 
     // ── 主題快捷 ───────────────────────────────────────────────
@@ -1478,7 +1526,7 @@
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
         setInterval(() => {
             detectBackground(); tradifyMenus(); fixExtensionsPopupLayout();
-            markDaySeparators(); markWaiting(); refreshCtxChip(); addProseCopyButtons(); addQuickButtons();
+            markDaySeparators(); markWaiting(); refreshCtxChip(); addProseCopyButtons(); addQuickButtons(); squareShells();
         }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
@@ -1501,6 +1549,7 @@
                     markWaiting();
                     addProseCopyButtons();
         addQuickButtons();
+        squareShells();
                     addQuickButtons();
                 }, 200);
             });
@@ -1598,6 +1647,7 @@
             // 換膚後裝飾與按鈕要重掛一次（圓角／顏色由 CSS 走，但
             // 等待動畫與快捷鈕的狀態要立刻反映）
             markWaiting(); addQuickButtons(); addProseCopyButtons(); refreshCtxChip();
+            squareShells();
         });
     }
 

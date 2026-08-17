@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.15.0';
+    const VERSION = '3.16.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -21,6 +21,7 @@
         compact: false,     // 緊湊行距
         diag: false,        // 空回診斷（預設關；唯讀觀察，不改請求／回應）
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
+        copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
     });
 
     function getContext() {
@@ -980,6 +981,117 @@
             + (d.getMonth() + 1) + '月' + d.getDate() + '日（週' + week + '）';
     }
 
+    // ── 複製正文 ───────────────────────────────────────────────
+    // 酒館內建的複製（.mes_copy）給的是 chat[id].mes 原文，狀態欄、
+    // 場景卡那些 HTML 會整包跟著出來，想分享劇情時得自己手動清。
+    // 這顆按鈕改為從「已渲染的畫面」上取，只留敘述與對話。
+    //
+    // 判準：角色卡的狀態區塊一律是「有框的容器」——div／table／
+    // details，或帶 style／class 的元素；而敘述與對話經 markdown
+    // 渲染後是乾淨的 <p>。所以只收頂層的 p 與純文字節點。
+    const PROSE_OK = new Set(['P', 'BLOCKQUOTE', 'EM', 'STRONG', 'I', 'B', 'Q', 'SPAN', 'BR', 'A', 'DEL', 'S', 'U', 'SMALL', 'MARK']);
+
+    function extractProse(mesText) {
+        const clone = mesText.cloneNode(true);
+        // 明確不要的東西（含黑森林自己插的日期分隔與等待動畫）
+        clone.querySelectorAll(
+            'details, table, pre, code, button, input, select, textarea, ' +
+            'progress, meter, hr, img, svg, iframe, audio, video, ' +
+            '.fn-daysep, .fn-waitbar, [data-fn-skip]'
+        ).forEach(el => el.remove());
+
+        const parts = [];
+        for (const node of Array.from(clone.childNodes)) {
+            if (node.nodeType === 3) {                       // 文字節點
+                const t = node.textContent.trim();
+                if (t) parts.push(t);
+                continue;
+            }
+            if (node.nodeType !== 1) continue;
+            // 有框的容器 = 狀態欄，跳過
+            if (!PROSE_OK.has(node.tagName)) continue;
+            if (node.hasAttribute('style') || node.hasAttribute('class')) continue;
+            const t = node.textContent.replace(/[ \t]+/g, ' ').trim();
+            if (t) parts.push(t);
+        }
+
+        let out = parts.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+        // 保底：整則都被包在容器裡（有些卡會這樣寫）時不要交白卷。
+        // 先撿裡面所有段落——這樣段落之間還留得住空行；真的連一個
+        // <p> 都沒有才退回整則純文字。
+        if (!out) {
+            const ps = Array.from(clone.querySelectorAll('p'))
+                .map(el => el.textContent.replace(/[ \t]+/g, ' ').trim())
+                .filter(Boolean);
+            out = ps.length
+                ? ps.join('\n\n')
+                : (clone.textContent || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+        }
+        return out;
+    }
+
+    async function copyProse(mes) {
+        const mesText = mes && mes.querySelector('.mes_text');
+        if (!mesText) return false;
+        const text = extractProse(mesText);
+        if (!text) return false;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (_) { /* iOS 在非使用者手勢或無權限時會擋，往下走後備 */ }
+        // 後備：隱藏 textarea + execCommand（與酒館 copyText 同一套）
+        try {
+            const parent = document.querySelector('dialog[open]:last-of-type') || document.body;
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+            parent.appendChild(ta);
+            ta.focus();
+            ta.setSelectionRange(0, ta.value.length);
+            const ok = document.execCommand('copy');
+            parent.removeChild(ta);
+            return ok;
+        } catch (_) { return false; }
+    }
+
+    function addProseCopyButtons() {
+        if (!settings.copyprose) {
+            document.querySelectorAll('#chat .fn-copy').forEach(b => b.remove());
+            return;
+        }
+        document.querySelectorAll('#chat .mes .mes_buttons').forEach((row) => {
+            if (row.querySelector('.fn-copy')) return;
+            const btn = document.createElement('div');
+            btn.className = 'fn-copy mes_button fa-solid fa-clipboard';
+            btn.title = '複製正文（不含狀態欄）';
+            btn.setAttribute('data-fn-skip', '');
+            // 插在 ⋯ 之前，跟編輯鉛筆同一排
+            const hint = row.querySelector('.extraMesButtonsHint');
+            if (hint) row.insertBefore(btn, hint);
+            else row.prepend(btn);
+        });
+    }
+
+    // 事件委派掛一次就好——訊息是動態插入的
+    document.addEventListener('click', async (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('#chat .fn-copy');
+        if (!btn) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const ok = await copyProse(btn.closest('.mes'));
+        // 用打勾短暫回饋，不搶 toastr 的版面
+        btn.classList.remove('fa-clipboard', 'fa-check', 'fa-xmark');
+        btn.classList.add(ok ? 'fa-check' : 'fa-xmark');
+        if (ok) btn.classList.add('fn-copy-ok');
+        setTimeout(() => {
+            btn.classList.remove('fa-check', 'fa-xmark', 'fn-copy-ok');
+            btn.classList.add('fa-clipboard');
+        }, 1100);
+    }, true);
+
     function markDaySeparators() {
         const rows = document.querySelectorAll('#chat .mes');
         if (!rows.length) return;
@@ -1257,7 +1369,7 @@
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
         setInterval(() => {
             detectBackground(); tradifyMenus(); fixExtensionsPopupLayout();
-            markDaySeparators(); markWaiting(); refreshCtxChip();
+            markDaySeparators(); markWaiting(); refreshCtxChip(); addProseCopyButtons();
         }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
@@ -1278,6 +1390,7 @@
                     fixExtensionsPopupLayout();
                     markDaySeparators();
                     markWaiting();
+                    addProseCopyButtons();
                 }, 200);
             });
             observer.observe(document.body, { childList: true, subtree: true });
@@ -1334,6 +1447,8 @@
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
             checkboxRow('foret_ctxmeter', '上下文用量（頭部顯示百分比，點開看細項）', settings.ctxmeter,
                 '資料取自 ST 開放的 API：maxContext／getTokenCountAsync／角色卡欄位／世界書') +
+            checkboxRow('foret_copyprose', '複製正文按鈕（每則訊息加一顆，只複製敘述與對話）', settings.copyprose,
+                '酒館內建的複製會連狀態欄的 HTML 一起帶走；這顆只取畫面上的敘述與對話') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
                 '只讀取回應副本來顯示 finish_reason／安全阻擋／token 用量，不修改請求或回應') +
             '    </div>' +
@@ -1354,6 +1469,7 @@
         bind('foret_compact', 'compact');
         bind('foret_diag', 'diag');
         bind('foret_ctxmeter', 'ctxmeter');
+        bind('foret_copyprose', 'copyprose');
     }
 
     function init() {
@@ -1366,6 +1482,7 @@
         apply();
         buildPanel();
         setTimeout(refreshCtxChip, 1200);
+        addProseCopyButtons();
         let tries = 0;
         const retry = setInterval(() => {
             buildPanel();

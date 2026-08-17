@@ -2046,3 +2046,18 @@ html[data-foret] body #sheld {
     font-size: 10.5px;
     font-variant-numeric: tabular-nums;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   複製正文
+   酒館內建的複製給的是含 HTML 的原文；這顆只取畫面上的敘述與
+   對話。外觀跟著 .mes_button 走，只在成功時閃一下開心果綠。
+   ═══════════════════════════════════════════════════════════════ */
+:root[data-foret] #chat .fn-copy {
+    cursor: pointer;
+    transition: color .18s, transform .18s;
+}
+:root[data-foret] #chat .fn-copy:hover { color: var(--fn-cream); }
+:root[data-foret] #chat .fn-copy.fn-copy-ok {
+    color: var(--fn-pistachio-2);
+    transform: scale(1.15);
+}

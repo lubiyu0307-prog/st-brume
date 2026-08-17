@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.16.0';
+    const VERSION = '3.17.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -22,6 +22,7 @@
         diag: false,        // 空回診斷（預設關；唯讀觀察，不改請求／回應）
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
+        quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
     });
 
     function getContext() {
@@ -981,6 +982,95 @@
             + (d.getMonth() + 1) + '月' + d.getDate() + '日（週' + week + '）';
     }
 
+    // ── 主題快捷 ───────────────────────────────────────────────
+    // 掛在酒館快捷列（#qr--bar）的最前面：那排是「單排橫向捲動、
+    // 靠左起始」，所以插在頭上的永遠看得到，使用者自己的快速回覆
+    // 往後捲，不佔任何新的垂直空間。沒有快捷列的人退到輸入列左側。
+    //
+    // 每顆都先確認指令真的註冊了才顯示——沒裝記憶書的玩家不會拿到
+    // 一顆死鍵。
+    const QUICK = [
+        {
+            id: 'mem', cmd: 'nextmemory', label: '做記憶',
+            title: '把上一段記憶之後到現在壓成新記憶（不必自己標範圍）',
+            run: '/nextmemory',
+        },
+        {
+            id: 'more', cmd: 'trigger', label: '再來一段',
+            title: '讓他再生成一則新訊息，劇情繼續推進（不是續寫在同一個泡泡裡）',
+            run: '/trigger',
+            // /trigger 會清空輸入框（防遞歸），先接住草稿再放回去
+            keepDraft: true,
+        },
+    ];
+
+    function hasCommand(ctx, name) {
+        try {
+            const reg = ctx && ctx.SlashCommandParser && ctx.SlashCommandParser.commands;
+            return !!(reg && reg[name]);
+        } catch (_) { return false; }
+    }
+
+    async function runQuick(item) {
+        const ctx = getContext();
+        if (!ctx || typeof ctx.executeSlashCommandsWithOptions !== 'function') return false;
+        const ta = document.getElementById('send_textarea');
+        const draft = (item.keepDraft && ta) ? ta.value : '';
+        try {
+            await ctx.executeSlashCommandsWithOptions(item.run);
+        } catch (_) { return false; }
+        if (draft && ta) {
+            // /trigger 的清空是排在 setTimeout 裡的，要等它做完才放回
+            setTimeout(() => {
+                if (!ta.value) {
+                    ta.value = draft;
+                    ta.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }, 600);
+        }
+        return true;
+    }
+
+    function addQuickButtons() {
+        const host = document.querySelector('#qr--bar > .qr--buttons')
+            || document.getElementById('leftSendForm');
+        if (!host) return;
+        const inQr = host.classList.contains('qr--buttons');
+        if (!settings.quickbar) {
+            document.querySelectorAll('.fn-quick').forEach(b => b.remove());
+            return;
+        }
+        const ctx = getContext();
+        // 反向插入，才能一路 prepend 成原本的順序
+        for (const item of [...QUICK].reverse()) {
+            const exists = host.querySelector(`.fn-quick[data-fn-quick="${item.id}"]`);
+            if (!hasCommand(ctx, item.cmd)) { if (exists) exists.remove(); continue; }
+            if (exists) { if (host.firstChild !== exists) { /* 順序交給下面重排 */ } continue; }
+            const btn = document.createElement('div');
+            btn.className = 'fn-quick' + (inQr ? ' qr--button' : '');
+            btn.dataset.fnQuick = item.id;
+            btn.title = item.title;
+            btn.textContent = inQr ? item.label : '';
+            if (!inQr) btn.classList.add('fa-solid', item.id === 'mem' ? 'fa-bookmark' : 'fa-forward');
+            host.prepend(btn);
+        }
+    }
+
+    document.addEventListener('click', async (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('.fn-quick');
+        if (!btn) return;
+        e.stopPropagation();
+        e.preventDefault();
+        if (btn.classList.contains('fn-quick-busy')) return;
+        const item = QUICK.find(q => q.id === btn.dataset.fnQuick);
+        if (!item) return;
+        btn.classList.add('fn-quick-busy');
+        const ok = await runQuick(item);
+        btn.classList.remove('fn-quick-busy');
+        btn.classList.add(ok ? 'fn-quick-ok' : 'fn-quick-bad');
+        setTimeout(() => btn.classList.remove('fn-quick-ok', 'fn-quick-bad'), 900);
+    }, true);
+
     // ── 複製正文 ───────────────────────────────────────────────
     // 酒館內建的複製（.mes_copy）給的是 chat[id].mes 原文，狀態欄、
     // 場景卡那些 HTML 會整包跟著出來，想分享劇情時得自己手動清。
@@ -1369,7 +1459,7 @@
         // 背景是使用者隨時可換的，補一個輕量輪詢（每 3 秒，僅讀取樣式）
         setInterval(() => {
             detectBackground(); tradifyMenus(); fixExtensionsPopupLayout();
-            markDaySeparators(); markWaiting(); refreshCtxChip(); addProseCopyButtons();
+            markDaySeparators(); markWaiting(); refreshCtxChip(); addProseCopyButtons(); addQuickButtons();
         }, 3000);
         // 選單／彈窗是點擊後才生成內容的——任何點擊後補跑一次
         //（capture 階段掛，stopPropagation 也擋不掉；兩者皆具冪等性）
@@ -1391,6 +1481,8 @@
                     markDaySeparators();
                     markWaiting();
                     addProseCopyButtons();
+        addQuickButtons();
+                    addQuickButtons();
                 }, 200);
             });
             observer.observe(document.body, { childList: true, subtree: true });
@@ -1447,6 +1539,8 @@
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
             checkboxRow('foret_ctxmeter', '上下文用量（頭部顯示百分比，點開看細項）', settings.ctxmeter,
                 '資料取自 ST 開放的 API：maxContext／getTokenCountAsync／角色卡欄位／世界書') +
+            checkboxRow('foret_quickbar', '主題快捷按鈕（快捷列最前面加「做記憶」「再來一段」）', settings.quickbar,
+                '偵測不到對應指令時自動隱藏，例如沒裝記憶書就不會出現「做記憶」') +
             checkboxRow('foret_copyprose', '複製正文按鈕（每則訊息加一顆，只複製敘述與對話）', settings.copyprose,
                 '酒館內建的複製會連狀態欄的 HTML 一起帶走；這顆只取畫面上的敘述與對話') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
@@ -1470,6 +1564,7 @@
         bind('foret_diag', 'diag');
         bind('foret_ctxmeter', 'ctxmeter');
         bind('foret_copyprose', 'copyprose');
+        bind('foret_quickbar', 'quickbar');
     }
 
     function init() {

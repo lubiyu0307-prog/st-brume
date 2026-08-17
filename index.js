@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.14.7';
+    const VERSION = '3.15.0';
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -348,6 +348,14 @@
         const msgText = m => (m.name ? m.name + ': ' : '') + (m.mes || '');
         const chatText = msgs.map(msgText).join('\n');
 
+        // 「幽靈」訊息：被 /hide 收起來的真實對話（記憶書做完記憶會自動
+        // 隱藏，預設就是開的）。酒館組提示詞時 chat.filter(!is_system)
+        // 會把它們整批排除，所以是真的不送出。
+        // 酒館自己的系統通知也是 is_system，靠 name 排除（systemUserName
+        // 常數為 'SillyTavern System'），才不會把它們算成幽靈。
+        const hidden = (ctx.chat || []).filter(m =>
+            m && m.is_system && m.name !== 'SillyTavern System').length;
+
         let wiText = '';
         try {
             // 掃描器吃的是「字串陣列、新到舊」（script.js 的 chatForWI 格式），
@@ -485,11 +493,50 @@
             used: Math.min(100, Math.round((prompt + reserve) / max * 100)),
             remaining: Math.max(0, max - prompt - reserve),
             parts: { history, character, world, persona, other },
-            messages: msgs.length, kept, dropped, overflow, historyTotal,
+            messages: msgs.length, kept, dropped, overflow, historyTotal, hidden,
         };
     }
 
     function fmt(n) { return Number(n).toLocaleString('en-US'); }
+
+    // 面板底部第一行：現在看到的是什麼
+    function ctxStatusLine(u) {
+        if (u.dropped > 0) {
+            return `上下文已滿——最舊的 ${fmt(u.dropped)} 則（約 ${fmt(u.overflow)} tokens）`
+                + '已掉出模型視野，他記不得那些內容了。';
+        }
+        return u.measured
+            ? '數字取自酒館的提示詞帳本，與內建「提示詞項目化」一致；未被預設檔送出的欄位（如對話範例）不計入。'
+            : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會自動校準。';
+    }
+
+    // 面板底部的提醒：一次只給一條，照嚴重程度挑，沒事就不出聲。
+    // 每條都必須是「看得到、改得動」的具體動作，不做泛泛的警告。
+    function ctxTip(u) {
+        // 2,000,000 是酒館「解鎖上下文長度」的最大值，設在這個數字上
+        // 等於沒有上限，百分比與警告都失去意義——這是新手最常中的陷阱
+        if (u.max >= 2000000) {
+            return '上限是「解鎖」的最大值，百分比會失去意義。建議把「上下文長度」設成模型的真實視窗大小'
+                + '（若改了會自動跳回，請關掉酒館助手的「最大化預設上下文長度」）。';
+        }
+        if (u.dropped > 0) {
+            return '想讓他記得那些劇情，用 /nextmemory 把那一段壓成記憶。';
+        }
+        if (u.used >= 85) {
+            return '快滿了：現在用 /nextmemory 把最舊的一段壓成記憶，可以先騰出空間。';
+        }
+        if (u.max > 0 && u.reserve >= u.max * 0.2) {
+            return `「預留回覆」佔了上限的 ${Math.round(u.reserve / u.max * 100)}%——那是先扣下來給角色回話的空間。`
+                + '調低「最大回應長度」可以立刻多出位子。';
+        }
+        if (u.max > 0 && u.parts.world >= u.max * 0.25) {
+            return '世界書偏大：可用記憶書的壓縮功能合併舊記憶，或把不必每回出場的條目改成關鍵字觸發。';
+        }
+        if (u.parts.character >= 8000) {
+            return '角色卡偏大，多半是「對話範例」那一欄——聊過幾十則之後，範例的作用本來就會被真實對話取代。';
+        }
+        return '';
+    }
 
     function renderContextPanel(u) {
         const old = document.getElementById('foret-ctx');
@@ -514,6 +561,7 @@
         }).join('');
 
         const level = u.used >= 90 ? 'hot' : (u.used >= 70 ? 'warm' : 'ok');
+        const tip = ctxTip(u);
         const box = document.createElement('div');
         box.id = 'foret-ctx';
         box.innerHTML =
@@ -533,12 +581,12 @@
             + `<div class="fx-stack">${bar}</div>`
             + `<div class="fx-rows">${rows}</div>`
             + '<div class="fx-note">'
-            + (u.dropped > 0
-                ? `上下文已滿——最舊的 ${fmt(u.dropped)} 則（約 ${fmt(u.overflow)} tokens）已掉出模型視野，他記不得那些內容了。可用 /nextmemory 壓成記憶。`
-                : (u.measured
-                    ? '已對照上次實際送出的提示詞——未被預設檔送出的欄位（如對話範例）不計入，「其他」為系統提示等差額。'
-                    : '尚未送出過訊息，以角色卡／世界書／聊天記錄估算；送出一次後會校準。'))
-            + `（v${VERSION}·${u.source}）`
+            + `<span class="fx-status">${ctxStatusLine(u)}</span>`
+            + (u.hidden > 0
+                ? `<span class="fx-ghost">另有 ${fmt(u.hidden)} 則已收為幽靈，不會送出——那是記憶書整理過的段落，劇情由世界書裡的記憶接手。</span>`
+                : '')
+            + (tip ? `<span class="fx-tip">${tip}</span>` : '')
+            + `<span class="fx-meta">v${VERSION}·${u.source}</span>`
             + '</div>';
         document.body.appendChild(box);
         box.querySelector('.fx-x').addEventListener('click', () => box.remove());

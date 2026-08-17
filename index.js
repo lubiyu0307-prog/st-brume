@@ -12,7 +12,15 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.17.1';
+    const VERSION = '3.18.0';
+
+    // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
+    // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
+    // 是吃 <meta name="theme-color"> 的，CSS 管不到，換膚必須跟著換。
+    const SKINS = [
+        { id: 'foret', label: '黑森林 Forêt-Noire', bar: '#33211C' },
+        { id: 'dusty', label: '正午 · 霧藍 Midi',   bar: '#43596B' },
+    ];
 
     const DEFAULTS = Object.freeze({
         enabled: true,      // 套用主題
@@ -23,6 +31,7 @@
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
         quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
+        skin: 'foret',      // 皮膚：foret（黑森林）／dusty（正午 · 霧藍）
     });
 
     function getContext() {
@@ -101,8 +110,11 @@
                 } else if (themeColorOrig === undefined) {
                     themeColorOrig = meta.getAttribute('content');
                 }
-                // 用頭部的可可色：狀態列緊貼頭部，這條接縫最顯眼
-                meta.setAttribute('content', '#33211C');
+                // 用頭部的底色：狀態列緊貼頭部，這條接縫最顯眼。
+                // 換膚時這裡沒跟著改，Android 就會在上下各留一條
+                // 別的皮膚的色帶。
+                const sk = SKINS.find(x => x.id === settings.skin) || SKINS[0];
+                meta.setAttribute('content', sk.bar);
             } else if (meta && themeColorOrig !== undefined) {
                 if (themeColorOrig === null) meta.remove();
                 else meta.setAttribute('content', themeColorOrig);
@@ -120,12 +132,15 @@
             html.removeAttribute('data-foret-texture');
             html.removeAttribute('data-foret-tools');
             html.removeAttribute('data-foret-compact');
+            html.removeAttribute('data-foret-skin');
             return;
         }
         html.setAttribute('data-foret', 'on');
         html.setAttribute('data-foret-immersive', settings.immersive ? 'on' : 'off');
         html.setAttribute('data-foret-texture', settings.texture ? 'on' : 'off');
         html.setAttribute('data-foret-compact', settings.compact ? 'on' : 'off');
+        html.setAttribute('data-foret-skin',
+            SKINS.some(x => x.id === settings.skin) ? settings.skin : 'foret');
         if (!settings.immersive) html.removeAttribute('data-foret-tools');
         detectBackground();
         updateHeader();
@@ -1537,7 +1552,14 @@
             '  </div>' +
             '  <div class="inline-drawer-content">' +
             '    <div class="flex-container flexFlowColumn" style="gap:8px; padding:4px 0;">' +
-            checkboxRow('foret_enabled', '套用黑森林主題', settings.enabled) +
+            checkboxRow('foret_enabled', '套用主題', settings.enabled) +
+            '<label class="flex-container alignItemsCenter" for="foret_skin" style="gap:8px;margin:0" ' +
+            'title="顏色、圓角、字體與裝飾整組切換；功能完全相同">' +
+            '<span style="flex:1">皮膚</span>' +
+            `<select id="foret_skin" class="text_pole" style="width:190px;flex:none">${
+                SKINS.map(sk => `<option value="${sk.id}"${sk.id === settings.skin ? ' selected' : ''}>${sk.label}</option>`).join('')
+            }</select>` +
+            '</label>' +
             checkboxRow('foret_immersive', '沉浸模式（收起工具列，改用角色頭部）', settings.immersive, '工具圖示列改由頭部的滑桿鈕點開，功能不減') +
             checkboxRow('foret_texture', '巧克力屑底紋', settings.texture, '設有背景圖時自動讓位') +
             checkboxRow('foret_compact', '緊湊行距', settings.compact) +
@@ -1569,6 +1591,14 @@
         bind('foret_ctxmeter', 'ctxmeter');
         bind('foret_copyprose', 'copyprose');
         bind('foret_quickbar', 'quickbar');
+        panel.querySelector('#foret_skin').addEventListener('change', (e) => {
+            settings.skin = SKINS.some(x => x.id === e.target.value) ? e.target.value : 'foret';
+            apply();
+            saveSettings();
+            // 換膚後裝飾與按鈕要重掛一次（圓角／顏色由 CSS 走，但
+            // 等待動畫與快捷鈕的狀態要立刻反映）
+            markWaiting(); addQuickButtons(); addProseCopyButtons(); refreshCtxChip();
+        });
     }
 
     function init() {

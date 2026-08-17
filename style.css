@@ -68,6 +68,16 @@
     --fn-line-cream: rgba(246, 239, 231, 0.34);
     /* 陰影：只用於真正浮起的東西 */
     --fn-lift: 0 6px 18px rgba(10, 5, 3, 0.45);
+    /* 更淡的髮線（原本散落成 rgba(...,.07)） */
+    --fn-line-faint: rgba(246, 239, 231, 0.07);
+    /* 主色的光暈與淡底（原本散落成 rgba(200,70,90,...)） */
+    --fn-accent-glow: rgba(200, 70, 90, 0.30);
+    --fn-accent-halo: rgba(200, 70, 90, 0.20);
+    --fn-accent-cast: rgba(200, 70, 90, 0.35);
+    --fn-accent-mist: rgba(200, 70, 90, 0.07);
+    --fn-accent-soft-a: rgba(224, 120, 138, 0.18);
+    --fn-accent-deep-a: rgba(142, 43, 61, 0.35);
+    --fn-on-accent-a: rgba(255, 243, 245, 0.55);
     /* 圓角尺度 */
     --fn-r-s: 10px;
     --fn-r-m: 14px;
@@ -91,7 +101,7 @@
         radial-gradient(1.5px 6px at 68% 44%, rgba(255, 240, 230, .04), transparent 60%),
         radial-gradient(1.5px 4px at 34% 71%, rgba(255, 240, 230, .05), transparent 60%),
         radial-gradient(1.5px 7px at 84% 82%, rgba(255, 240, 230, .035), transparent 60%),
-        radial-gradient(120% 80% at 50% 0%, rgba(200, 70, 90, .07), transparent 62%),
+        radial-gradient(120% 80% at 50% 0%, var(--fn-accent-mist), transparent 62%),
         linear-gradient(180deg, var(--fn-base), var(--fn-base-2));
     background-size: 340px 340px, 300px 300px, 380px 380px, 260px 260px, 100% 100%, 100% 100%;
 }
@@ -438,7 +448,7 @@ html[data-foret] body #sheld {
        短訊息仍由 width:fit-content 貼齊文字。 */
     max-width: min(100%, 720px) !important;
     background: var(--fn-bubble) !important;
-    border: 1px solid rgba(246, 239, 231, 0.07) !important;
+    border: 1px solid var(--fn-line-faint) !important;
     border-radius: 4px 16px 16px 16px !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, .25) !important;
     padding: 8px 13px 10px !important;
@@ -446,7 +456,7 @@ html[data-foret] body #sheld {
 }
 :root[data-foret] #chat .mes[is_user='true'] .mes_block {
     background: var(--fn-bubble-user) !important;
-    border-color: rgba(224, 120, 138, 0.18) !important;
+    border-color: var(--fn-accent-soft-a) !important;
     border-radius: 16px 4px 16px 16px !important;
 }
 :root[data-foret] #chat .mes .mes_block > * { min-width: 0; }
@@ -539,7 +549,7 @@ html[data-foret] body #sheld {
 }
 :root[data-foret] #chat .mes[is_user='true'] .name_text { display: none; }
 :root[data-foret] #chat .timestamp { font-size: 10px; color: var(--fn-cocoa); }
-:root[data-foret] #chat .mes[is_user='true'] .timestamp { color: rgba(255, 243, 245, .55); }
+:root[data-foret] #chat .mes[is_user='true'] .timestamp { color: var(--fn-on-accent-a); }
 
 :root[data-foret] #chat .mes_text {
     font-size: 15px;
@@ -623,7 +633,7 @@ html[data-foret] body #sheld {
     height: 30px;
     border-radius: 4px 15px 15px 15px;
     background: var(--fn-bubble);
-    border: 1px solid rgba(246, 239, 231, 0.07);
+    border: 1px solid var(--fn-line-faint);
     box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
 }
 /* 泡泡尾巴，與訊息泡泡同一個造型 */
@@ -844,7 +854,7 @@ html[data-foret] body #sheld {
     background: var(--fn-cherry) !important;
     color: var(--fn-on-cherry) !important;
     border: none !important;
-    box-shadow: 0 2px 10px rgba(200, 70, 90, .35);
+    box-shadow: 0 2px 10px var(--fn-accent-cast);
 }
 :root[data-foret] #rightSendForm > #send_but i {
     width: auto !important;
@@ -888,10 +898,10 @@ html[data-foret] body #sheld {
    必須用 inset——輸入框有 clip-path 裁圓角（v3.2.2 修 iOS 平切用的），
    外擴的陰影會被裁掉，只有內陰影畫得出來。 */
 :root[data-foret] #send_textarea:focus {
-    border-color: rgba(246, 239, 231, .34) !important;
+    border-color: var(--fn-line-cream) !important;
     box-shadow:
-        inset 0 0 0 2px rgba(246, 239, 231, .42),
-        inset 0 0 0 4.5px rgba(200, 70, 90, .30) !important;
+        inset 0 0 0 2px var(--fn-line-cream),
+        inset 0 0 0 4.5px var(--fn-accent-glow) !important;
     transition: box-shadow .18s ease, border-color .18s ease;
 }
 /* 輸入框上緣圓角不被遮：祖先容器不得裁切 */
@@ -1016,7 +1026,7 @@ html[data-foret] body #sheld {
         line-height: 38px;
         margin: 0 0 3px !important;
         align-self: end;
-        box-shadow: 0 2px 8px rgba(200, 70, 90, .3);
+        box-shadow: 0 2px 8px var(--fn-accent-glow);
     }
     :root[data-foret] #rightSendForm > #send_but i {
         font-size: 14px !important;
@@ -1127,7 +1137,7 @@ html[data-foret] body #sheld {
     color: var(--fn-cherry-soft) !important;
 }
 :root[data-foret] .menu_button.redWarningBG {
-    background: rgba(142, 43, 61, .35) !important;
+    background: var(--fn-accent-deep-a) !important;
     border-color: var(--fn-cherry-deep) !important;
 }
 :root[data-foret] .text_pole,
@@ -1736,13 +1746,13 @@ html[data-foret] body #sheld {
 :root[data-foret] .extensions_info .failure,
 :root[data-foret] .extensions_block .failure {
     color: var(--fn-cherry-soft) !important;
-    border-color: rgba(224, 120, 138, .5) !important;
-    background: rgba(200, 70, 90, .15) !important;
+    border-color: var(--fn-cherry-soft) !important;
+    background: var(--fn-cherry-jam) !important;
 }
 /* 頂部 API 連線指示燈：同一組語意色 */
 :root[data-foret] .online_status_indicator {
     background-color: var(--fn-cherry-deep) !important;
-    box-shadow: 0 0 0 2px rgba(200, 70, 90, .2);
+    box-shadow: 0 0 0 2px var(--fn-accent-halo);
 }
 :root[data-foret] .online_status_indicator.success {
     background-color: var(--fn-pistachio-2) !important;
@@ -1780,7 +1790,7 @@ html[data-foret] body #sheld {
     border-radius: 50%;
     background: var(--fn-cherry, #C8465A);
     flex: none;
-    box-shadow: 0 0 0 3px rgba(200, 70, 90, .2);
+    box-shadow: 0 0 0 3px var(--fn-accent-halo);
 }
 #foret-diag .fd-title { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; }
 #foret-diag .fd-x {
@@ -2097,4 +2107,258 @@ html[data-foret] body #sheld {
 :root[data-foret] .fn-quick.fn-quick-bad {
     background: var(--fn-cherry) !important;
     color: var(--fn-on-cherry) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   皮膚：正午 · 霧藍（Midi Dusty）
+   1955 年沙漠汽車旅館的曬白色票。平塗、硬邊、零漸層、零陰影。
+   與黑森林翻掉的軸：明暗（深→淺）、圓角（20px→0）、字體（圓體→
+   幾何無襯線）、邊框（無→2px 實線）、陰影（柔和→沒有）。
+
+   對比全部實測過（不是憑感覺配的）：
+     板岩藍 #43596B 內文 → 明信片 6.65:1、砂底 5.73:1
+     霧藍   #5B7A92 只當框線與虛線 → 4.12/3.55，非文字只需 3:1
+       （直接拿它當內文只有 4.12，且它與燒橘、藍綠的明度幾乎相同
+         ——1.32——並置會糊掉，色盲更是分不出，所以嚴禁當色塊。）
+     燒橘   #E4632A 只當色塊；亮底上的文字改用鏽橘 #B0431A（5.22:1）
+     壓在橘塊上的字用深藍 #0C2740（4.43:1；奶油只有 3.13）
+     玩家泡泡藍綠特意調深到 #166D7D，奶油字才有 5.44:1
+   ═══════════════════════════════════════════════════════════════════ */
+:root[data-foret][data-foret-skin='dusty'] {
+    /* 砂與明信片（由深至淺） */
+    --fn-base: #EDDCB2;
+    --fn-base-2: #E4D0A0;
+    --fn-cake: #F2E3BC;
+    --fn-cake-2: #FBF4E2;
+    --fn-cake-3: #FFFBF0;
+    /* 板岩藍當文字 */
+    --fn-cream: #43596B;
+    --fn-caramel: #4A6578;
+    --fn-cocoa: #5B7A92;
+    /* 燒橘當主色 */
+    --fn-cherry: #E4632A;
+    --fn-cherry-soft: #B0431A;      /* 亮底上的「強調文字」用鏽橘 */
+    --fn-cherry-deep: #C24C1B;
+    --fn-cherry-jam: rgba(228, 99, 42, 0.14);
+    --fn-on-cherry: #0C2740;        /* 壓在橘塊上的字 */
+    /* 泡泡：半透明，讓背景圖透出來（維持黑森林的做法） */
+    --fn-bubble: rgba(251, 244, 226, 0.86);
+    --fn-bubble-user: rgba(22, 109, 125, 0.86);
+    /* 土耳其藍綠取代開心果，當次要點綴 */
+    --fn-pistachio: #166D7D;
+    --fn-pistachio-2: #1B7F91;
+    /* 線條：霧藍。這是這套皮膚的主角 */
+    --fn-line: #5B7A92;
+    --fn-line-2: #5B7A92;
+    --fn-line-cream: #43596B;
+    --fn-line-faint: rgba(91, 122, 146, 0.45);
+    /* 光暈與淡底 */
+    --fn-accent-glow: rgba(228, 99, 42, 0.32);
+    --fn-accent-halo: rgba(228, 99, 42, 0.22);
+    --fn-accent-cast: rgba(228, 99, 42, 0.28);
+    --fn-accent-mist: rgba(228, 99, 42, 0.06);
+    --fn-accent-soft-a: rgba(176, 67, 26, 0.22);
+    --fn-accent-deep-a: rgba(22, 109, 125, 0.30);
+    --fn-on-accent-a: rgba(251, 244, 226, 0.62);
+    /* 正午的光不留影子 */
+    --fn-lift: none;
+    /* 直角 */
+    --fn-r-s: 0px;
+    --fn-r-m: 0px;
+    --fn-r-l: 0px;
+}
+
+/* ── 字體：圓體（可愛）換成幾何無襯線（招牌字） ─────────────── */
+:root[data-foret][data-foret-skin='dusty'] body,
+:root[data-foret][data-foret-skin='dusty'] #chat,
+:root[data-foret][data-foret-skin='dusty'] #foret-header,
+:root[data-foret][data-foret-skin='dusty'] #send_textarea {
+    font-family: "Avenir Next", Avenir, Futura, "Helvetica Neue",
+                 "PingFang TC", "Noto Sans TC", sans-serif !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-name {
+    font-weight: 700;
+    letter-spacing: .05em;
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-sub {
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-size: 10.5px;
+}
+
+/* ── 底紋：巧克力屑換成極淡的紙纖維（沒有暖光暈） ───────────── */
+:root[data-foret][data-foret-skin='dusty'][data-foret-texture='on'] body::before {
+    background:
+        repeating-linear-gradient(90deg,
+            rgba(67, 89, 107, .035) 0 1px, transparent 1px 6px),
+        repeating-linear-gradient(0deg,
+            rgba(67, 89, 107, .025) 0 1px, transparent 1px 9px),
+        linear-gradient(180deg, var(--fn-base), var(--fn-base-2));
+    background-size: auto, auto, 100% 100%;
+}
+
+/* ── 捲軸：巧克力棒換成一條平塗的橘條 ───────────────────────── */
+:root[data-foret][data-foret-skin='dusty'] ::-webkit-scrollbar-track {
+    background: rgba(67, 89, 107, .14);
+    border-radius: 0;
+}
+:root[data-foret][data-foret-skin='dusty'] ::-webkit-scrollbar-thumb {
+    border-radius: 0;
+    border: 2px solid var(--fn-line);
+    background: var(--fn-cherry);
+}
+:root[data-foret][data-foret-skin='dusty'] ::-webkit-scrollbar-thumb:hover {
+    background: var(--fn-cherry-deep);
+}
+
+/* ── 頭部下緣：奶油淋邊換成一條平塗的橘線 ───────────────────── */
+:root[data-foret][data-foret-skin='dusty'][data-foret-immersive='on'] #foret-header::after {
+    bottom: 0;
+    height: 4px;
+    background: var(--fn-cherry);
+    background-repeat: repeat-x;
+    background-size: auto;
+    opacity: 1;
+}
+
+/* ── 頭貼：奶油扇貝環＋櫻桃徽章換成方框，徽章拿掉 ───────────── */
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ava,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-avatar {
+    border-radius: 2px !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ava::before {
+    border-radius: 2px;
+    background: none;
+    border: 2px solid var(--fn-cream);
+    inset: -3px;
+    -webkit-mask: none;
+            mask: none;
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ava::after { display: none; }
+/* 聊天區的頭貼也跟著改方 */
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar img {
+    border-radius: 2px !important;
+}
+
+/* ── 日期分隔：奶油淋醬換成虛線＋名牌 ───────────────────────── */
+:root[data-foret][data-foret-skin='dusty'] .fn-daysep::before,
+:root[data-foret][data-foret-skin='dusty'] .fn-daysep::after {
+    background: none !important;
+    border-top: 2px dashed var(--fn-line) !important;
+    height: 0 !important;
+    opacity: 1 !important;
+}
+:root[data-foret][data-foret-skin='dusty'] .fn-daysep {
+    letter-spacing: .2em;
+    font-weight: 700;
+    font-size: 10px;
+    color: var(--fn-cream);
+}
+
+/* ── 訊息泡泡：圓潤換直角，並加上 2px 實線硬框（明信片） ───────
+   泡泡本體在 .mes_block，且原本的圓角是寫死的
+   4px 16px 16px 16px——token 管不到，必須在這裡明確歸零。 */
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_block,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes[is_user='true'] .mes_block {
+    border-radius: 0 !important;
+    border: 2px solid var(--fn-line) !important;
+    /* 正午的光不留影子 */
+    box-shadow: none !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_text { border-radius: 0 !important; }
+
+/* ── 其餘寫死的圓角一併歸零：等待泡泡與引言塊 ───────────────── */
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub {
+    border-radius: 0 !important;
+    border: 2px solid var(--fn-line) !important;
+    box-shadow: none !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #chat .mes blockquote {
+    border-radius: 0 !important;
+    background: rgba(67, 89, 107, .10) !important;
+    border-left: 2px solid var(--fn-cherry-soft) !important;
+}
+
+/* ── 等待動畫：滾動的櫻桃換成三格步驟燈 ─────────────────────── */
+:root[data-foret][data-foret-skin='dusty'] .fn-waitbar i,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-wait] .mes_text::after {
+    border-radius: 50% !important;
+    background: var(--fn-cherry) !important;
+    box-shadow: none !important;
+    animation: fn-step 1.5s steps(1, end) infinite !important;
+}
+@keyframes fn-step {
+    0%, 33%   { opacity: 1; }
+    34%, 100% { opacity: .22; }
+}
+
+/* ── 甜點裝飾一律收起：櫻桃、奶油、巧克力語彙不屬於這套 ─────── */
+:root[data-foret][data-foret-skin='dusty'] .fn-sweet,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ava::after,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_text::before {
+    display: none !important;
+}
+
+/* ── 主題快捷與複製鈕：跟著換成鏽橘（亮底上要讀得到） ───────── */
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > .fn-quick {
+    color: var(--fn-cherry-soft) !important;
+    border-color: var(--fn-line) !important;
+    border-width: 2px !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #chat .fn-copy.fn-copy-ok {
+    color: var(--fn-pistachio-2) !important;
+}
+
+/* ── 正午：所有寫死的圓一律歸零 ───────────────────────────────
+   「直角」是這套皮膚最強的識別軸，但主題裡有二十幾處圓角是寫死的
+   （50% 的圓鈕與頭貼、999px 的膠囊），token 管不到，得逐處指名。
+   非圓形的裝飾（扇貝環、櫻桃徽章）在上面已個別處理。 */
+:root[data-foret][data-foret-skin='dusty'] .qr--button,
+:root[data-foret][data-foret-skin='dusty'] .qr--button-expander,
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > div,
+:root[data-foret][data-foret-skin='dusty'] #rightSendForm > #send_but,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-btn,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ctx,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-tile,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-meter,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-meter > i,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-track,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-track > i,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-dot,
+:root[data-foret][data-foret-skin='dusty'] #foret-ctx .fx-x,
+:root[data-foret][data-foret-skin='dusty'] #foret-diag,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar img,
+:root[data-foret][data-foret-skin='dusty'] .recentChat .avatar img,
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub {
+    border-radius: 2px !important;
+}
+/* 聊天區頭貼：奶油扇貝環是畫在 .avatar 自己的 background 上的
+   （repeating-conic-gradient），不是偽元素——要覆蓋 background
+   本身，只藏偽元素沒有用。改成 2px 方框。 */
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar {
+    background: none !important;
+    border: 2px solid var(--fn-line) !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar::before,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .avatar::after {
+    display: none !important;
+}
+/* 快捷字符條與輸入框：2px 硬框 */
+:root[data-foret][data-foret-skin='dusty'] .qr--button,
+:root[data-foret][data-foret-skin='dusty'] #send_textarea,
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > div,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ctx {
+    border-width: 2px !important;
+    border-color: var(--fn-line) !important;
+}
+/* 飛機：實心橘塊，字用深藍（奶油壓在橘上只有 3.13:1） */
+:root[data-foret][data-foret-skin='dusty'] #rightSendForm > #send_but,
+:root[data-foret][data-foret-skin='dusty'] #rightSendForm > #send_but i {
+    color: var(--fn-on-cherry) !important;
+    box-shadow: none !important;
 }

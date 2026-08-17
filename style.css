@@ -2436,3 +2436,54 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     --avatar-base-border-radius-round: 2px;
     --avatar-base-border-radius-rounded: 2px;
 }
+
+/* ── 正午：把「實心板岩藍的外框條」補回來 ─────────────────────
+   實作沒對齊預覽：預覽的頭部與輸入列是整條實心板岩藍 #43596B ＋
+   奶油字，但實作把它們接到 --fn-cake（砂色）上，於是霧藍只剩下細
+   框線，整個介面看起來一片奶油。這裡把三條 chrome（頭部、工具列、
+   輸入列）改回實心板岩藍，砂色只留給對話區。
+   對比：奶油 #F4E6C0 壓在 #43596B 上 6.65:1。 */
+:root[data-foret][data-foret-skin='dusty'] {
+    --fn-bar: #43596B;
+    --fn-on-bar: #F4E6C0;
+    --fn-on-bar-line: rgba(244, 230, 192, 0.42);
+}
+:root[data-foret][data-foret-skin='dusty'][data-foret-immersive='on'] #foret-header,
+:root[data-foret][data-foret-skin='dusty'][data-foret-immersive='on'][data-foret-tools='on'] #top-settings-holder,
+:root[data-foret][data-foret-skin='dusty'] #form_sheld {
+    background: var(--fn-bar) !important;
+    color: var(--fn-on-bar) !important;
+    border-color: var(--fn-on-bar-line) !important;
+    box-shadow: none !important;
+}
+/* 壓在板岩條上的字與圖示改奶油色 */
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-name,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-sub,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-btn,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ctx,
+:root[data-foret][data-foret-skin='dusty'][data-foret-tools='on'] #top-settings-holder .drawer-icon {
+    color: var(--fn-on-bar) !important;
+}
+/* 條上的小元件：框線改奶油色（板岩底上霧藍框看不見） */
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ctx,
+:root[data-foret][data-foret-skin='dusty'] #foret-header .fh-ava::before,
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > div,
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > .fn-quick,
+:root[data-foret][data-foret-skin='dusty'] .qr--button {
+    border-color: var(--fn-on-bar-line) !important;
+    background: transparent !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > div,
+:root[data-foret][data-foret-skin='dusty'] .qr--button {
+    color: var(--fn-on-bar) !important;
+}
+/* 主題快捷維持橘系，在板岩底上要亮一階才看得到 */
+:root[data-foret][data-foret-skin='dusty'] #leftSendForm > .fn-quick {
+    color: #E8A87C !important;
+}
+/* 輸入框保持砂色紙面，跟對話區同一個材質 */
+:root[data-foret][data-foret-skin='dusty'] #send_textarea {
+    background: var(--fn-cake-2) !important;
+    color: var(--fn-cream) !important;
+    border-color: var(--fn-on-bar-line) !important;
+}

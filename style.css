@@ -66,6 +66,11 @@
     --fn-line: rgba(246, 239, 231, 0.10);
     --fn-line-2: rgba(246, 239, 231, 0.20);
     --fn-line-cream: rgba(246, 239, 231, 0.34);
+    /* 上下兩條系統列／輸入托盤的底色。黑森林跟頁面底色同一色，
+       所以接縫看不出來；霧藍把它換成板岩藍，就得有名字可以指名。 */
+    --fn-bar: var(--fn-base-2);
+    /* 思考區塊那層夾層底（原本寫死 rgba(0,0,0,.28)，淺色皮膚上會變灰帶） */
+    --fn-inset: rgba(0, 0, 0, 0.28);
     /* 陰影：只用於真正浮起的東西 */
     --fn-lift: 0 6px 18px rgba(10, 5, 3, 0.45);
     /* 更淡的髮線（原本散落成 rgba(...,.07)） */
@@ -121,6 +126,30 @@
 /* 使用者自訂背景圖時讓位（底紋只在沒有背景圖時鋪） */
 :root[data-foret][data-foret-bg='on'] body::before { display: none; }
 
+/* 手機叫出鍵盤時輸入托盤底下露出的那條色帶。
+   成因：上面那層底紋是 position:fixed + 100dvh，而 iOS 的軟鍵盤不會
+   改變 dvh，Safari 是把「版面視窗」往上捲，好讓輸入框浮在鍵盤上面。
+   fixed 元素釘在版面視窗，於是被一起捲上去，托盤下緣到鍵盤之間那段
+   就沒有東西畫了，露出畫布本色（:root 的 background-color）。
+   黑森林的畫布跟托盤同一色，接縫看不出來；霧藍托盤是板岩藍、畫布是
+   砂色，就變成一條奶油色帶。
+   兩手都做：畫布本色改吃 --fn-bar，另外再補一塊往視窗下方延伸的
+   固定色塊（背景圖開著時上面那層底紋是關的，只靠畫布不夠保險）。
+   Android 的鍵盤是把視窗縮小，dvh 會跟著變，這塊剛好貼在新的視窗
+   下緣、看不到；系統列顏色仍由 index.js 的 theme-color 管，兩邊
+   現在同樣吃 --fn-bar，接縫是連續的。 */
+:root[data-foret] body::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 100dvh;
+    height: 60vh;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--fn-bar);
+}
+
 /* ═══ 接管 ST 主題變數 ═══════════════════════════════════════ */
 :root[data-foret] {
     --SmartThemeBodyColor: var(--fn-cream) !important;
@@ -140,7 +169,9 @@
     --SmartThemeBlurStrength: 0px !important;
     --mainFontFamily: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif !important;
     --topBarIconSize: calc(var(--mainFontSize) * 1.35) !important;
-    background-color: var(--fn-base-2) !important;
+    /* 畫布本色。捲過頭／鍵盤把版面推上去時露出來的就是這個色，
+       所以吃托盤色 --fn-bar（黑森林等於 --fn-base-2，行為不變）。 */
+    background-color: var(--fn-bar) !important;
 }
 :root[data-foret] body {
     font-family: 'Huninn', 'Yuanti TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif !important;
@@ -715,7 +746,7 @@ html[data-foret] body #sheld {
 
 /* 思考區塊：泡泡裡的夾層，安靜一點 */
 :root[data-foret] .mes_reasoning_details {
-    background: rgba(0, 0, 0, 0.28);
+    background: var(--fn-inset);
     border: none;
     border-left: 2px solid var(--fn-caramel);
     border-radius: 6px 10px 10px 6px;
@@ -2178,6 +2209,9 @@ html[data-foret] body #sheld {
     --fn-accent-soft-a: rgba(176, 67, 26, 0.22);
     --fn-accent-deep-a: rgba(22, 109, 125, 0.30);
     --fn-on-accent-a: rgba(251, 244, 226, 0.62);
+    /* 思考區塊的夾層底：黑森林是 28% 黑，壓在砂色明信片上會算成
+       一條暖灰帶（0.28 黑 ＋ #FBF4E2 ≈ #B5B0A3），改成淡霧藍。 */
+    --fn-inset: rgba(91, 122, 146, 0.12);
     /* 正午的光不留影子。
        酒館的 public/style.css 用全域選擇器 `* { text-shadow: 0 0
        calc(var(--shadowWidth)*1px) var(--SmartThemeShadowColor) }` 給「每一個
@@ -2531,6 +2565,18 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 :root[data-foret][data-foret-skin='dusty'] .draggable,
 :root[data-foret][data-foret-skin='dusty'] .mes_img_swipe_counter {
     filter: none !important;
+}
+
+/* 「Thought for N 秒」那顆藥丸吃的是酒館寫死的 --grey30（st.css:465），
+   跟砂色明信片完全不同調。連同摺疊箭頭一起換成霧藍系。 */
+:root[data-foret][data-foret-skin='dusty'] .mes_reasoning_header {
+    background-color: var(--fn-inset) !important;
+    color: var(--fn-caramel) !important;
+    border: 1px solid var(--fn-line-faint);
+}
+:root[data-foret][data-foret-skin='dusty'] .mes_reasoning_header .icon-svg,
+:root[data-foret][data-foret-skin='dusty'] .mes_reasoning_header_title {
+    color: var(--fn-caramel) !important;
 }
 
 /* 正午不留影子：把訊息卡與那排圖示上殘留的陰影收乾淨。

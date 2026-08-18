@@ -2141,9 +2141,13 @@ html[data-foret] body #sheld {
     --fn-cherry-deep: #C24C1B;
     --fn-cherry-jam: rgba(228, 99, 42, 0.14);
     --fn-on-cherry: #0C2740;        /* 壓在橘塊上的字 */
-    /* 泡泡：半透明，讓背景圖透出來（維持黑森林的做法） */
-    --fn-bubble: rgba(251, 244, 226, 0.86);
-    --fn-bubble-user: rgba(22, 109, 125, 0.86);
+    /* 泡泡：不透明的「明信片」。
+       先前試過半透明（86%）讓背景圖透出來——實機上照片深色的部分會
+       在卡片上透成一片灰，看起來像髒掉的陰影，尤其壓在訊息頂端的按鈕
+       那一行。淺色皮膚跟照片本來就搶明度，所以改成實心紙面：背景圖
+       只在卡片之間露出來，像把照片別在旅館的佈告板上。 */
+    --fn-bubble: #FBF4E2;
+    --fn-bubble-user: #166D7D;
     /* 土耳其藍綠取代開心果，當次要點綴 */
     --fn-pistachio: #166D7D;
     --fn-pistachio-2: #1B7F91;
@@ -2486,4 +2490,15 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     background: var(--fn-cake-2) !important;
     color: var(--fn-cream) !important;
     border-color: var(--fn-on-bar-line) !important;
+}
+
+/* 明信片是實心的，連帶把殘留的暗角與陰影清乾淨（正午不留影子） */
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_block,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_text,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_buttons,
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }

@@ -129,6 +129,10 @@
     --SmartThemeUnderlineColor: var(--fn-caramel) !important;
     --SmartThemeBorderColor: var(--fn-line-2) !important;
     --SmartThemeShadowColor: rgba(10, 5, 3, 0.5) !important;
+    /* 酒館的聚焦外框寫死成白色（--interactable-outline-color: var(--white100)、
+       faint 版是 white20a）。深底看起來像微光，淺底就是一塊白框。改吃主題線條色。 */
+    --interactable-outline-color: var(--fn-cream) !important;
+    --interactable-outline-color-faint: var(--fn-line-cream) !important;
     --SmartThemeBlurTintColor: var(--fn-cake) !important;
     --SmartThemeChatTintColor: transparent !important;
     --SmartThemeUserMesBlurTintColor: transparent !important;
@@ -904,6 +908,18 @@ html[data-foret] body #sheld {
         inset 0 0 0 4.5px var(--fn-accent-glow) !important;
     transition: box-shadow .18s ease, border-color .18s ease;
 }
+/* 打字時輸入列外面浮出一圈白框：那是酒館的
+   `#send_form:has(#send_textarea:focus-visible) { outline: 1px solid var(--white20a) }`。
+   它框住的是整個 #send_form——輸入框、送出鍵、下面那排快捷全被圈進去，
+   在淺色皮膚上就是一塊白色色塊。輸入框自己已經有聚焦框（上面那條
+   inset 奶油邊），這圈是多的，關掉。
+   選擇器要壓過酒館的 (2,1,0)，所以連 #form_sheld 一起指名並加 !important。 */
+:root[data-foret] #form_sheld #send_form:has(#send_textarea:focus-visible),
+:root[data-foret] #send_form:has(#send_textarea:focus-visible) {
+    outline: none !important;
+    border-color: transparent !important;
+}
+
 /* 輸入框上緣圓角不被遮：祖先容器不得裁切 */
 :root[data-foret] #form_sheld,
 :root[data-foret] #send_form,
@@ -2152,6 +2168,8 @@ html[data-foret] body #sheld {
     --fn-line-2: #5B7A92;
     --fn-line-cream: #43596B;
     --fn-line-faint: rgba(91, 122, 146, 0.45);
+    /* 淺底上不用整條實心板岩藍當「淡」外框，會太重 */
+    --interactable-outline-color-faint: var(--fn-line-faint) !important;
     /* 光暈與淡底 */
     --fn-accent-glow: rgba(228, 99, 42, 0.32);
     --fn-accent-halo: rgba(228, 99, 42, 0.22);
@@ -2494,6 +2512,25 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     background: var(--fn-cake-2) !important;
     color: var(--fn-cream) !important;
     border-color: var(--fn-on-bar-line) !important;
+}
+
+/* 圖示底下那圈灰暈的真兇：酒館對每顆訊息圖示下了
+     .mes_button, .extraMesButtons > div { filter: drop-shadow(0px 0px 2px black) }
+   （public/style.css 4485 行）——顏色是寫死的 black，不吃 --SmartThemeShadowColor，
+   所以上一版把字影關掉之後它還在。同一招也用在 .mes_edit_buttons（4514）、
+   .dragClose（3022）、.drag-grabber（809）、.ch_fav_icon（3430）、
+   .draggable（5860）。filter 沒辦法「只拿掉陰影」，只能整條換成 none。
+   我們自己的複製鍵掛的是 .mes_button，所以一併被治好。 */
+:root[data-foret][data-foret-skin='dusty'] .mes_button,
+:root[data-foret][data-foret-skin='dusty'] .extraMesButtons > div,
+:root[data-foret][data-foret-skin='dusty'] .mes_edit_buttons,
+:root[data-foret][data-foret-skin='dusty'] .mes_reasoning_actions .edit_button,
+:root[data-foret][data-foret-skin='dusty'] .dragClose,
+:root[data-foret][data-foret-skin='dusty'] .drag-grabber,
+:root[data-foret][data-foret-skin='dusty'] .ch_fav_icon,
+:root[data-foret][data-foret-skin='dusty'] .draggable,
+:root[data-foret][data-foret-skin='dusty'] .mes_img_swipe_counter {
+    filter: none !important;
 }
 
 /* 正午不留影子：把訊息卡與那排圖示上殘留的陰影收乾淨。

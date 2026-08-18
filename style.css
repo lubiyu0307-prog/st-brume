@@ -137,8 +137,10 @@
    固定色塊（背景圖開著時上面那層底紋是關的，只靠畫布不夠保險）。
    Android 的鍵盤是把視窗縮小，dvh 會跟著變，這塊剛好貼在新的視窗
    下緣、看不到；系統列顏色仍由 index.js 的 theme-color 管，兩邊
-   現在同樣吃 --fn-bar，接縫是連續的。 */
-:root[data-foret] body::after {
+   現在同樣吃 --fn-bar，接縫是連續的。
+   掛在 :root::after 而不是 body::after——body::after 已經被面板開啟時
+   的薄紗佔走了，同一個元素只有一個 ::after。 */
+:root[data-foret]::after {
     content: '';
     position: fixed;
     left: 0;
@@ -2435,6 +2437,18 @@ html[data-foret][data-foret-skin='dusty'] .popup-content,
 html[data-foret][data-foret-skin='dusty'] .popup-controls,
 html[data-foret][data-foret-skin='dusty'] .dialogue_popup,
 html[data-foret][data-foret-skin='dusty'] .drawer-content,
+/* 展開中的托盤：圓角那條（1562 行）是一串逗號選擇器，裡面既有
+   `.drawer-content.openDrawer` (0,4,0) 也有 `#WorldInfo.openDrawer` (1,3,0)。
+   ID 級先比，所以世界書面板得逐一指名 ID 才壓得過，只加
+   `.drawer-content.openDrawer` 是不夠的——少了就會是圓角，跟正午的
+   硬邊語彙對不上。 */
+html[data-foret][data-foret-skin='dusty'] .drawer-content.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #WorldInfo.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #world_popup.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #left-nav-panel.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #right-nav-panel.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #user-settings-block.openDrawer,
+html[data-foret][data-foret-skin='dusty'] #character_popup.open,
 html[data-foret][data-foret-skin='dusty'] .inline-drawer-content,
 html[data-foret][data-foret-skin='dusty'] .inline-drawer-toggle,
 html[data-foret][data-foret-skin='dusty'] .inline-drawer-header,
@@ -2592,4 +2606,82 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     text-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+}
+
+/* ═══ 正午：世界／知識書的分區色塊 ═══════════════════════════
+   問題：整個面板從標題到條目全是同一片砂色，只靠細線分區，
+   在淺色皮膚上會糊成一大塊白。深色皮膚沒這問題，因為卡片跟
+   底之間本來就有明度差。
+   做法沿用正午既有的語彙——平塗、硬邊、2px 板岩線，不加漸層、
+   不加陰影，只用三階明度把「頁首／設定／工具／內容」切開：
+     頁首  = 實心板岩藍（跟頭部條、輸入托盤同一色）
+     設定＋工具 = 12% 霧藍淡塊（--fn-inset），上下各一條 2px 板岩線
+     條目卡 = 明信片白 ＋ 左緣 4px 鏽橘（像索引卡的標籤邊）
+   對比實測：奶油 #F4E6C0 壓在板岩 #43596B 上 6.65:1；
+   板岩內文壓在淡塊（≈#E0D7B7）上 5.2:1，都過 4.5:1。 */
+
+/* 頁首：滿版板岩條。面板內距是 16px 14px，用等量負邊距做滿版。 */
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container:not(#wi-holder) {
+    background: var(--fn-bar) !important;
+    color: var(--fn-on-bar) !important;
+    margin: -16px -14px 12px !important;
+    padding: 12px 14px !important;
+    border-bottom: 2px solid var(--fn-on-bar-line);
+}
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container h3,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container h3 span,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container .fa-unlock,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container .fa-lock,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container .note-link-span,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container a,
+:root[data-foret][data-foret-skin='dusty'] #WorldInfo > .flex-container a:visited {
+    color: var(--fn-on-bar) !important;
+    text-decoration-color: var(--fn-on-bar-line) !important;
+}
+
+/* 全域設定區與工具列：淡塊，兩端各一條板岩線 */
+:root[data-foret][data-foret-skin='dusty'] #wiTopBlock,
+:root[data-foret][data-foret-skin='dusty'] #world_popup > .flex-container {
+    background: var(--fn-inset);
+    padding: 9px 10px;
+    margin: 0 0 8px;
+    border-top: 2px solid var(--fn-line);
+    border-bottom: 2px solid var(--fn-line);
+}
+/* 兩排工具列是連著的，中間那條線去掉，看起來是一整塊 */
+:root[data-foret][data-foret-skin='dusty'] #world_popup > .flex-container + .flex-container {
+    margin-top: -8px;
+    border-top: none;
+}
+/* 工具列上的欄位改吃明信片白，才浮得出來 */
+:root[data-foret][data-foret-skin='dusty'] #wiTopBlock .text_pole,
+:root[data-foret][data-foret-skin='dusty'] #world_popup > .flex-container .text_pole,
+:root[data-foret][data-foret-skin='dusty'] #world_popup > .flex-container .menu_button {
+    background: var(--fn-cake-2) !important;
+}
+/* 工具列跟頁首之間那條 <hr> 多餘了 */
+:root[data-foret][data-foret-skin='dusty'] #world_popup > hr { display: none; }
+
+/* 條目卡：索引卡。左緣一道鏽橘標籤邊，關掉的條目改成灰藍。 */
+:root[data-foret][data-foret-skin='dusty'] #world_popup_entries_list > .world_entry {
+    border: 2px solid var(--fn-line) !important;
+    border-left: 4px solid var(--fn-cherry-soft) !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #world_popup_entries_list > .world_entry:has(.killSwitch.fa-toggle-off) {
+    border-left-color: var(--fn-line) !important;
+    background: var(--fn-cake) !important;
+}
+/* 卡片裡的欄位標題：小字、板岩、拉開字距，像卡片上的印刷欄位名 */
+:root[data-foret][data-foret-skin='dusty'] .world_entry .WIEntryHeaderTitleMobile {
+    letter-spacing: .08em;
+    color: var(--fn-caramel) !important;
+}
+/* 刪除鍵：酒館的 .redWarningBG 是寫死的暗紅，砂底上會發灰，改鏽橘。
+   要比上面那條「工具列欄位改明信片白」(1,5,0) 重，所以連 .menu_button
+   一起指名，湊到 (1,6,0)。 */
+:root[data-foret][data-foret-skin='dusty'] #world_popup > .flex-container .menu_button.redWarningBG,
+:root[data-foret][data-foret-skin='dusty'] .redWarningBG {
+    background: var(--fn-cherry) !important;
+    border-color: var(--fn-cherry-deep) !important;
+    color: var(--fn-on-cherry) !important;
 }

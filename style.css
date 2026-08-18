@@ -2685,3 +2685,48 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     border-color: var(--fn-cherry-deep) !important;
     color: var(--fn-on-cherry) !important;
 }
+
+/* ═══ 正午：酒館寫死的「白色透明度」色票 ═════════════════════
+   酒館有一組 --white20a / 30a / 50a / 60a / 70a / 100（style.css 32-37 行），
+   整份介面拿它們當淡框、hover 淡底、次要文字、停用文字。前提是深色底——
+   白色壓在深底上會變灰，讀得到；壓在砂色明信片上就等於消失。
+   實測（提示詞管理器的停用項目，底 #F2E3BC）：
+     停用文字 rgba(255,255,255,.30) → 對比 1.08:1（看起來像糊掉的字）
+     停用框線 rgba(255,255,255,.20) → 對比 1.05:1（等於沒有框）
+   同一份 CSS 在黑森林量到 2.67:1 / 1.91:1，所以只有淺色皮膚壞掉。
+   這裡按「用途」改吃板岩藍：當底色的（hover 淡底）要淡，
+   當文字／圖示的要夠深，不能一律換同一個透明度。 */
+:root[data-foret][data-foret-skin='dusty'] {
+    --white20a: rgba(67, 89, 107, 0.35) !important;   /* 淡框 */
+    --white30a: rgba(67, 89, 107, 0.14) !important;   /* 主要當 hover 淡底，要淡 */
+    --white50a: rgba(67, 89, 107, 0.60) !important;   /* 次要圖示 */
+    --white60a: rgba(67, 89, 107, 0.70) !important;
+    --white70a: rgba(67, 89, 107, 0.80) !important;   /* 次要文字 */
+    --white100: #43596B !important;
+}
+
+/* 提示詞管理器：開／關要一眼分得出來。
+   啟用 = 明信片白 ＋ 實線板岩框；停用 = 不填色 ＋ 虛線框 ＋ 壓深的字。
+   停用文字用 72% 板岩（對比 3.2:1）——比啟用的 5.73:1 明顯暗一階，
+   但還讀得到；框線用實心霧藍 #5B7A92（3.55:1，非文字門檻 3:1）。
+   酒館那兩條沒有 !important，所以這裡加上就壓得過，不必比權重。 */
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list li.completion_prompt_manager_prompt {
+    background: var(--fn-cake-2) !important;
+    border: 1px solid var(--fn-line) !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list li.completion_prompt_manager_prompt_disabled {
+    background: transparent !important;
+    border: 1px dashed var(--fn-line) !important;
+}
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list .completion_prompt_manager_prompt_disabled .completion_prompt_manager_prompt_name,
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list .completion_prompt_manager_prompt_disabled .completion_prompt_manager_prompt_name .prompt-manager-inspect-action {
+    color: rgba(67, 89, 107, 0.72) !important;
+}
+/* 名稱前面那顆標記星號：酒館給 --white50a，砂底上要再深一點 */
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list .completion_prompt_manager_prompt_name .fa-solid {
+    color: var(--fn-cocoa) !important;
+}
+/* 啟用中的開關吃 --SmartThemeQuoteColor（正午＝鏽橘），停用的沉成灰藍 */
+:root[data-foret][data-foret-skin='dusty'] .completion_prompt_manager_prompt_disabled .prompt-manager-toggle-action {
+    color: var(--fn-line) !important;
+}

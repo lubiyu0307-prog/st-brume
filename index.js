@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.22.0';
+    const VERSION = '3.22.1';
 
     // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列

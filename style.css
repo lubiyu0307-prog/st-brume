@@ -2577,9 +2577,19 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 :root[data-foret][data-foret-skin='dusty'] .drag-grabber,
 :root[data-foret][data-foret-skin='dusty'] .ch_fav_icon,
 :root[data-foret][data-foret-skin='dusty'] .draggable,
-:root[data-foret][data-foret-skin='dusty'] .mes_img_swipe_counter {
+:root[data-foret][data-foret-skin='dusty'] .mes_img_swipe_counter,
+/* 提示詞管理器的每顆操作鍵（斷鏈／編輯／開關）與進階列圖示：
+   promptmanager.css 的 85 與 247 行，同樣是寫死 black 的 drop-shadow。 */
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager_list li.completion_prompt_manager_prompt span span span,
+:root[data-foret][data-foret-skin='dusty'] #completion_prompt_manager .completion_prompt_manager_header_advanced span,
+/* 群組成員的星號（rm-groups.css:234） */
+:root[data-foret][data-foret-skin='dusty'] .group_select .group_fav_icon {
     filter: none !important;
 }
+/* 例外：角色立繪與表情圖的投影（mobile-styles.css 191/473/546、
+   toggle-dependent.css 416/431）是 #51515199 灰影，作用是讓立繪從背景
+   浮出來，不是介面雜訊——留著。群組狀態的橘／綠光暈（rm-groups.css
+   182/186/192）是語意色，也留著。 */
 
 /* 「Thought for N 秒」那顆藥丸吃的是酒館寫死的 --grey30（st.css:465），
    跟砂色明信片完全不同調。連同摺疊箭頭一起換成霧藍系。 */

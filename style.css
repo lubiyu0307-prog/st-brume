@@ -2141,13 +2141,9 @@ html[data-foret] body #sheld {
     --fn-cherry-deep: #C24C1B;
     --fn-cherry-jam: rgba(228, 99, 42, 0.14);
     --fn-on-cherry: #0C2740;        /* 壓在橘塊上的字 */
-    /* 泡泡：不透明的「明信片」。
-       先前試過半透明（86%）讓背景圖透出來——實機上照片深色的部分會
-       在卡片上透成一片灰，看起來像髒掉的陰影，尤其壓在訊息頂端的按鈕
-       那一行。淺色皮膚跟照片本來就搶明度，所以改成實心紙面：背景圖
-       只在卡片之間露出來，像把照片別在旅館的佈告板上。 */
-    --fn-bubble: #FBF4E2;
-    --fn-bubble-user: #166D7D;
+    /* 泡泡：半透明，讓背景圖透出來（維持黑森林的做法） */
+    --fn-bubble: rgba(251, 244, 226, 0.86);
+    --fn-bubble-user: rgba(22, 109, 125, 0.86);
     /* 土耳其藍綠取代開心果，當次要點綴 */
     --fn-pistachio: #166D7D;
     --fn-pistachio-2: #1B7F91;
@@ -2164,7 +2160,15 @@ html[data-foret] body #sheld {
     --fn-accent-soft-a: rgba(176, 67, 26, 0.22);
     --fn-accent-deep-a: rgba(22, 109, 125, 0.30);
     --fn-on-accent-a: rgba(251, 244, 226, 0.62);
-    /* 正午的光不留影子 */
+    /* 正午的光不留影子。
+       酒館的 public/style.css 用全域選擇器 `* { text-shadow: 0 0
+       calc(var(--shadowWidth)*1px) var(--SmartThemeShadowColor) }` 給「每一個
+       元素」都上了字影，包含訊息上方那排圖示。深底的黑森林看不出來，
+       但壓在砂色明信片上，每個字元／圖示底下就糊出一圈灰。
+       從酒館自己的變數關掉，比跟 `*{}` 拚 !important 乾淨；
+       用 !important 是因為酒館會把這兩個變數寫成 :root 的行內樣式。 */
+    --shadowWidth: 0 !important;
+    --SmartThemeShadowColor: transparent !important;
     --fn-lift: none;
     /* 直角 */
     --fn-r-s: 0px;
@@ -2492,10 +2496,14 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     border-color: var(--fn-on-bar-line) !important;
 }
 
-/* 明信片是實心的，連帶把殘留的暗角與陰影清乾淨（正午不留影子） */
+/* 正午不留影子：把訊息卡與那排圖示上殘留的陰影收乾淨。
+   關鍵那條是上面的 --shadowWidth: 0（酒館的 `*{}` 字影）；這裡再補一層
+   直接指名，是為了擋掉酒館日後改用寫死值、或別的擴充補上的陰影。 */
 :root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_block,
 :root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_text,
 :root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_buttons,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_buttons .mes_button,
+:root[data-foret][data-foret-skin='dusty'] #chat .mes .mes_buttons .mes_button::before,
 :root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub {
     box-shadow: none !important;
     text-shadow: none !important;

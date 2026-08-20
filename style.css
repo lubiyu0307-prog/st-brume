@@ -2740,3 +2740,48 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 :root[data-foret][data-foret-skin='dusty'] .completion_prompt_manager_prompt_disabled .prompt-manager-toggle-action {
     color: var(--fn-line) !important;
 }
+
+/* ═══ 正午：等待動畫「飛碟借隕石」════════════════════════════
+   黑森林的滾櫻桃（.fw-ball 的 SVG＋foret-roll）原封不動，這裡只在
+   霧藍時整組換掉：外星人用虛線光束吊著隕石，沿地平線來回巡航——
+   他只是想借看看，回覆寫好就還。預覽定案：候選 A。
+   軌道偽元素（::after）從巧克力軌道改成地平線；泡泡尾巴（::before）
+   收掉——正午的明信片沒有尾巴。 */
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub {
+    overflow: hidden;   /* 飛碟 SVG 的留白比泡泡高，裁掉超出的空白 */
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub::before {
+    display: none;
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-bub::after {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 7px;
+    height: 2px;
+    border-radius: 0;
+    background: var(--fn-line-cream);
+}
+:root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-ball {
+    width: 24px;
+    height: 24px;
+    left: 6px;
+    bottom: 2.5px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 7.5a4 4 0 0 1 8 0' fill='%2343596B'/%3E%3Cellipse cx='12' cy='9' rx='9.5' ry='3' fill='%23166D7D'/%3E%3Cline x1='12' y1='13' x2='12' y2='17.5' stroke='%23E4632A' stroke-width='1.6' stroke-dasharray='2.4 1.8'/%3E%3Ccircle cx='12' cy='20' r='2.8' fill='%23B0431A'/%3E%3Ccircle cx='11.1' cy='19.1' r='.9' fill='%23E4632A'/%3E%3C/svg%3E") center / contain no-repeat;
+    animation: foret-ufo 2.6s ease-in-out infinite alternate;
+}
+/* 滑翔＋微浮。可用寬度：泡泡 92 − 邊框 4 − 左 6 − 飛碟 24 = 58，
+   位移到 54 留一點呼吸 */
+@keyframes foret-ufo {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(14px, -1.5px); }
+    50%  { transform: translate(28px, 0); }
+    75%  { transform: translate(42px, -1.5px); }
+    100% { transform: translate(54px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    :root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-ball {
+        animation: none;
+        transform: translate(28px, 0);
+    }
+}

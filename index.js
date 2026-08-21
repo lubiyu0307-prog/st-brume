@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.23.0';
+    const VERSION = '3.24.0';
 
     // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -31,6 +31,7 @@
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
         quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
+        sprite: true,       // 角色立繪貼齊主題（酒館內建 Expressions 擴充）
         skin: 'foret',      // 皮膚：foret（黑森林）／dusty（正午 · 霧藍）
     });
 
@@ -133,6 +134,7 @@
             html.removeAttribute('data-foret-tools');
             html.removeAttribute('data-foret-compact');
             html.removeAttribute('data-foret-skin');
+            html.removeAttribute('data-foret-sprite');
             return;
         }
         html.setAttribute('data-foret', 'on');
@@ -141,6 +143,7 @@
         html.setAttribute('data-foret-compact', settings.compact ? 'on' : 'off');
         html.setAttribute('data-foret-skin',
             SKINS.some(x => x.id === settings.skin) ? settings.skin : 'foret');
+        html.setAttribute('data-foret-sprite', settings.sprite ? 'on' : 'off');
         if (!settings.immersive) html.removeAttribute('data-foret-tools');
         detectBackground();
         updateHeader();
@@ -1576,6 +1579,39 @@
         window.addEventListener('resize', () => setTimeout(fixExtensionsPopupLayout, 120));
     }
 
+    // ── 角色情緒立繪：換表情時淡入 ─────────────────────────────
+    // 酒館內建的 Expressions 擴充換表情，是直接改 <img class="expression">
+    // 的 src——圖是硬切的，情緒轉折會有點突兀。這裡只做一件事：src 一變
+    // 就補上一個 class 讓 CSS 播 0.34 秒淡入（動畫本身在 style.css，
+    // 並尊重 prefers-reduced-motion）。
+    // 不碰情緒判定、不碰分類器請求、不碰擴充的任何設定值。
+    // 群組的視覺小說模式會同時掛好幾張立繪，所以是逐張處理。
+    function installSpriteFade() {
+        // 具名的收尾函式：關閉動態效果（prefers-reduced-motion）時
+        // animationend 不會來，用同一個參照才掛得掉，不會愈積愈多。
+        const done = (e) => e.currentTarget.classList.remove('fn-sprite-in');
+        const play = (img) => {
+            if (!settings.enabled || !settings.sprite) return;
+            if (!img.getAttribute('src')) return;
+            img.classList.remove('fn-sprite-in');
+            void img.offsetWidth;   // 強制重排，動畫才會重播
+            img.classList.add('fn-sprite-in');
+            img.removeEventListener('animationend', done);
+            img.addEventListener('animationend', done, { once: true });
+        };
+        try {
+            new MutationObserver((records) => {
+                for (const r of records) {
+                    const t = r.target;
+                    if (t && t.nodeType === 1 && typeof t.matches === 'function'
+                        && t.matches('img.expression')) play(t);
+                }
+            }).observe(document.body, {
+                subtree: true, attributes: true, attributeFilter: ['src'],
+            });
+        } catch (_) { }
+    }
+
     // ── 設定面板 ───────────────────────────────────────────────
     function checkboxRow(id, label, checked, hint) {
         return (
@@ -1616,6 +1652,8 @@
                 '資料取自 ST 開放的 API：maxContext／getTokenCountAsync／角色卡欄位／世界書') +
             checkboxRow('foret_quickbar', '主題快捷按鈕（快捷列最前面加「做記憶」「再來一段」）', settings.quickbar,
                 '偵測不到對應指令時自動隱藏，例如沒裝記憶書就不會出現「做記憶」') +
+            checkboxRow('foret_sprite', '角色立繪貼齊主題（情緒立繪的配色、手機版面與換圖淡入）', settings.sprite,
+                '酒館內建「角色情緒立繪」擴充的外觀層：卡片與立繪改吃主題色，手機上立繪不再被擠成一條；不影響情緒判定') +
             checkboxRow('foret_copyprose', '複製正文按鈕（每則訊息加一顆，只複製敘述與對話）', settings.copyprose,
                 '酒館內建的複製會連狀態欄的 HTML 一起帶走；這顆只取畫面上的敘述與對話') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
@@ -1640,6 +1678,7 @@
         bind('foret_ctxmeter', 'ctxmeter');
         bind('foret_copyprose', 'copyprose');
         bind('foret_quickbar', 'quickbar');
+        bind('foret_sprite', 'sprite');
         panel.querySelector('#foret_skin').addEventListener('change', (e) => {
             settings.skin = SKINS.some(x => x.id === e.target.value) ? e.target.value : 'foret';
             apply();
@@ -1662,6 +1701,7 @@
         buildPanel();
         setTimeout(refreshCtxChip, 1200);
         addProseCopyButtons();
+        installSpriteFade();
         let tries = 0;
         const retry = setInterval(() => {
             buildPanel();

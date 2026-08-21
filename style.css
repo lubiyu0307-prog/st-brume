@@ -2589,7 +2589,9 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 /* 例外：角色立繪與表情圖的投影（mobile-styles.css 191/473/546、
    toggle-dependent.css 416/431）是 #51515199 灰影，作用是讓立繪從背景
    浮出來，不是介面雜訊——留著。群組狀態的橘／綠光暈（rm-groups.css
-   182/186/192）是語意色，也留著。 */
+   182/186/192）是語意色，也留著。
+   （立繪本體 .expression-holder 的 #51515199 另案處理——那條在
+   Expressions 擴充自己的 style.css:47，見檔尾「角色情緒立繪」一節。）*/
 
 /* 「Thought for N 秒」那顆藥丸吃的是酒館寫死的 --grey30（st.css:465），
    跟砂色明信片完全不同調。連同摺疊箭頭一起換成霧藍系。 */
@@ -2783,5 +2785,172 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     :root[data-foret][data-foret-skin='dusty'] #foret-wait .fw-ball {
         animation: none;
         transform: translate(28px, 0);
+    }
+}
+
+/* ═══ 角色情緒立繪（Expressions 擴充）════════════════════════════
+   酒館內建的 Expressions 會照「最後一則訊息的情緒」換一張角色立繪，
+   貼在畫面左下；設定面板則是一整排情緒卡。兩邊的顏色都是擴充自己
+   寫死的中性灰（expressions/style.css 的 #515151b0、#000000a8、
+   #51515199 與 green/darkolivegreen/red），跟蛋糕體無關——在黑森林
+   上是一塊悶灰，在正午的砂色明信片上更是直接糊成髒斑。
+   這一段把立繪與情緒卡收進主題色，並且把手機上的版面壓回可用。
+   純外觀：不碰情緒判定、不碰分類器請求、不碰擴充的設定值。
+   由「角色立繪貼齊主題」開關控制（data-foret-sprite）。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 立繪本體 ───────────────────────────────────────────────── */
+/* 投影：擴充寫死 #51515199（灰）。黑森林換成自己的可可影， */
+:root[data-foret][data-foret-sprite='on'] .expression-holder {
+    filter: drop-shadow(0 4px 12px rgba(10, 5, 3, 0.45));
+}
+/* 正午不留影子——立繪也一樣，改用一條極淡的霧藍描邊把它從砂色裡拉出來。 */
+:root[data-foret][data-foret-skin='dusty'][data-foret-sprite='on'] .expression-holder {
+    filter:
+        drop-shadow(1px 0 0 var(--fn-line-faint))
+        drop-shadow(-1px 0 0 var(--fn-line-faint))
+        drop-shadow(0 1px 0 var(--fn-line-faint));
+}
+
+/* 換表情時淡入（動畫由 index.js 在 src 變動時掛 class 觸發） */
+@keyframes foret-sprite-in {
+    from { opacity: 0; transform: translateY(6px) scale(.985); }
+    to   { opacity: 1; transform: none; }
+}
+:root[data-foret][data-foret-sprite='on'] img.expression.fn-sprite-in {
+    animation: foret-sprite-in .34s ease-out;
+}
+
+/* 手機：擴充給立繪的寬度是 calc((100vw - var(--sheldWidth))/2)，
+   手機上聊天欄就是滿版，算出來趨近 0，只剩 min-width 的 100px 在撐，
+   立繪會被擠成一條。這裡改成「靠左下、以高度為準」，並且讓它不吃
+   點擊——立繪蓋在訊息上時還要能長按選字。
+   用 !important 是因為 ST 的 movingUI 會把使用者拖過的位置與尺寸
+   寫成行內樣式，外部 CSS 壓不過。 */
+@media screen and (max-width: 1000px) {
+    :root[data-foret][data-foret-sprite='on'] #expression-holder {
+        left: 0 !important;
+        right: auto !important;
+        bottom: 0 !important;
+        top: auto !important;
+        width: auto !important;
+        height: auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 48vw !important;
+        max-height: 38vh !important;
+        resize: none;
+        pointer-events: none;
+    }
+    :root[data-foret][data-foret-sprite='on'] #expression-holder img.expression {
+        min-width: 0;
+        min-height: 0;
+        max-width: 48vw;
+        max-height: 38vh;
+    }
+    /* 拖曳把手在手機上按不到也用不著 */
+    :root[data-foret][data-foret-sprite='on'] #expression-holderheader {
+        display: none;
+    }
+}
+
+/* ── 設定面板：情緒卡清單 ───────────────────────────────────── */
+/* 卡片底色 #515151b0 → 蛋糕體；標題條 #000000a8 → 甘納許。 */
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item {
+    background-color: var(--fn-cake);
+    border: 1px solid var(--fn-line-faint);
+    border-radius: var(--fn-r-s);
+    overflow: hidden;
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item:hover {
+    background-color: var(--fn-cake-3);
+    border-color: var(--fn-line-2);
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_title {
+    background-color: var(--fn-cake-2);
+    color: var(--fn-cream);
+    border-top: 1px solid var(--fn-line-faint);
+    height: auto;
+    min-height: 22%;
+    padding: 3px 4px;
+    font-weight: 500;
+    gap: 1px;
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_custom {
+    color: var(--fn-cocoa);
+}
+
+/* 三種狀態（已上傳／同一表情的第二張以後／還沒有圖）本來是
+   green／darkolivegreen／red 三顆生色，換成主題自己的語意色。 */
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item[data-expression-type="success"] .expression_list_title {
+    color: var(--fn-pistachio);
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item[data-expression-type="additional"] .expression_list_title {
+    color: var(--fn-pistachio-2);
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item[data-expression-type="additional"] .expression_list_title::before {
+    text-shadow: 0 0 0 var(--fn-pistachio-2);
+    /* 擴充把這顆 ➕ 放在標題條外面（top:-7px left:-9px），卡片一旦
+       圓角裁切就會被切掉半顆。收進標題條左端。 */
+    top: 1px;
+    left: 2px;
+}
+:root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item[data-expression-type="failure"] .expression_list_title {
+    color: var(--fn-cocoa);   /* 「還沒放圖」是待辦，不是錯誤，不用紅字吼 */
+}
+
+/* 卡片上的上傳／刪除小鈕：壓在圖上，給一層薄底才看得清楚 */
+:root[data-foret][data-foret-sprite='on'] .expression_list_buttons .menu_button {
+    background-color: var(--fn-bubble);
+    border: 1px solid var(--fn-line-faint);
+    color: var(--fn-caramel);
+    padding: 4px 6px;
+    min-width: 0;
+}
+:root[data-foret][data-foret-sprite='on'] .expression_list_buttons .menu_button:hover {
+    color: var(--fn-cherry);
+    border-color: var(--fn-line-2);
+}
+
+/* 「立繪組：某某」那行標題 */
+:root[data-foret][data-foret-sprite='on'] #image_list_header {
+    color: var(--fn-caramel);
+    border-bottom: 1px solid var(--fn-line-faint);
+    padding-bottom: 4px;
+    margin-top: 6px;
+}
+:root[data-foret][data-foret-sprite='on'] #image_list_header_name {
+    color: var(--fn-cream);
+    font-weight: 600;
+}
+:root[data-foret][data-foret-sprite='on'] #no_chat_expressions {
+    color: var(--fn-cocoa);
+    font-weight: 400;
+}
+
+/* 手機：擴充讓卡片 max-width:20% + min-width:100px，360px 的螢幕會
+   排成三張 100px 的小方塊，圖看不清楚、字也擠。改成兩欄。 */
+@media screen and (max-width: 1000px) {
+    :root[data-foret][data-foret-sprite='on'] #image_list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 8px 0;
+    }
+    :root[data-foret][data-foret-sprite='on'] #image_list .expression_list_item {
+        max-width: none;
+        min-width: 0;
+        max-height: none;
+    }
+    :root[data-foret][data-foret-sprite='on'] #image_list .expression_list_image_container,
+    :root[data-foret][data-foret-sprite='on'] #image_list .expression_list_image {
+        max-width: 100%;
+        max-height: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-foret][data-foret-sprite='on'] img.expression.fn-sprite-in {
+        animation: none;
     }
 }

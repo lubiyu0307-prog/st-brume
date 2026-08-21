@@ -225,7 +225,7 @@
     //   maxContext／getTokenCountAsync／getCharacterCardFields
     //   ／getWorldInfoPrompt／chat
     // 沒有逆向、沒有讀私有變數。
-    // 呈現方式依資料視覺化規範決定，不是照抄別人的畫面：
+    // 呈現方式依資料視覺化規範決定：
     //   · 「用了幾成」是單一比例對上限 → 量表（meter），不是圓餅
     //   · 四個抬頭數字 → 統計磚（KPI 列）
     //   · 各項佔用 → 部分對全體 → 一條堆疊長條，段間留 2px 空隙
@@ -394,7 +394,7 @@
         try {
             // 掃描器吃的是「字串陣列、新到舊」（script.js 的 chatForWI 格式），
             // 傳原始訊息物件進去，關鍵字條目會永遠掃不中。
-            // globalScanData 的欄位形狀照抄 script.js 送的那份。
+            // globalScanData 的欄位形狀比照 script.js 送的那份。
             const chatForWI = msgs.map(msgText).reverse();
             // isDryRun = true：只問不記，不會觸發 WORLD_INFO_ACTIVATED 事件
             const r = await ctx.getWorldInfoPrompt(chatForWI, Math.max(0, max - reserve), true, {

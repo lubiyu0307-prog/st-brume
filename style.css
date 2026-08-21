@@ -2794,7 +2794,7 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
    寫死的中性灰（expressions/style.css 的 #515151b0、#000000a8、
    #51515199 與 green/darkolivegreen/red），跟蛋糕體無關——在黑森林
    上是一塊悶灰，在正午的砂色明信片上更是直接糊成髒斑。
-   這一段把立繪與情緒卡收進主題色，並且把手機上的版面壓回可用。
+   這一段把立繪與情緒卡收進主題色，情緒清單在手機上改成兩欄。
    純外觀：不碰情緒判定、不碰分類器請求、不碰擴充的設定值。
    由「角色立繪貼齊主題」開關控制（data-foret-sprite）。
    ══════════════════════════════════════════════════════════════ */
@@ -2821,34 +2821,15 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
     animation: foret-sprite-in .34s ease-out;
 }
 
-/* 手機：擴充給立繪的寬度是 calc((100vw - var(--sheldWidth))/2)，
-   手機上聊天欄就是滿版，算出來趨近 0，只剩 min-width 的 100px 在撐，
-   立繪會被擠成一條。這裡改成「靠左下、以高度為準」，並且讓它不吃
-   點擊——立繪蓋在訊息上時還要能長按選字。
-   用 !important 是因為 ST 的 movingUI 會把使用者拖過的位置與尺寸
-   寫成行內樣式，外部 CSS 壓不過。 */
+/* 手機：酒館自己在 mobile-styles.css:443 就把立繪關掉了
+   （@media(max-width:1000px) 裡的 .expression-holder{display:none}），
+   所以手機在一般模式下根本不會出現立繪——要看得到，得去「使用者設定」
+   開「Visual Novel Mode」（waifuMode）。
+   開了以後版面是酒館自己排的：聊天欄縮到畫面下方 40vh，立繪置中、
+   高度吃 90vh，直向還會 object-fit:cover 左右裁切。那是那個模式刻意
+   的設計，主題不去動它的尺寸與位置——動了就是把它縮回角落，等於把
+   功能關掉。這裡只收掉拖曳把手：手機上按不到，也沒有拖的必要。 */
 @media screen and (max-width: 1000px) {
-    :root[data-foret][data-foret-sprite='on'] #expression-holder {
-        left: 0 !important;
-        right: auto !important;
-        bottom: 0 !important;
-        top: auto !important;
-        width: auto !important;
-        height: auto !important;
-        min-width: 0 !important;
-        min-height: 0 !important;
-        max-width: 48vw !important;
-        max-height: 38vh !important;
-        resize: none;
-        pointer-events: none;
-    }
-    :root[data-foret][data-foret-sprite='on'] #expression-holder img.expression {
-        min-width: 0;
-        min-height: 0;
-        max-width: 48vw;
-        max-height: 38vh;
-    }
-    /* 拖曳把手在手機上按不到也用不著 */
     :root[data-foret][data-foret-sprite='on'] #expression-holderheader {
         display: none;
     }

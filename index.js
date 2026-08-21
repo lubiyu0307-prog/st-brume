@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.24.0';
+    const VERSION = '3.24.1';
 
     // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1653,7 +1653,7 @@
             checkboxRow('foret_quickbar', '主題快捷按鈕（快捷列最前面加「做記憶」「再來一段」）', settings.quickbar,
                 '偵測不到對應指令時自動隱藏，例如沒裝記憶書就不會出現「做記憶」') +
             checkboxRow('foret_sprite', '角色立繪貼齊主題（情緒立繪的配色、手機版面與換圖淡入）', settings.sprite,
-                '酒館內建「角色情緒立繪」擴充的外觀層：卡片與立繪改吃主題色，手機上立繪不再被擠成一條；不影響情緒判定') +
+                '酒館內建「角色情緒立繪」擴充的外觀層：卡片與立繪改吃主題色，情緒清單在手機上改兩欄；不影響情緒判定') +
             checkboxRow('foret_copyprose', '複製正文按鈕（每則訊息加一顆，只複製敘述與對話）', settings.copyprose,
                 '酒館內建的複製會連狀態欄的 HTML 一起帶走；這顆只取畫面上的敘述與對話') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,

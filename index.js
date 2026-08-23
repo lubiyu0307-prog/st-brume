@@ -12,9 +12,9 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.23.0';
+    const VERSION = '3.23.1';
 
-    // 皮膚：顏色與造型都由 style.css 的 data-foret-skin 分流；
+    // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
     // 是吃 <meta name="theme-color"> 的，CSS 管不到，換膚必須跟著換。
     const SKINS = [
@@ -31,7 +31,7 @@
         ctxmeter: true,     // 上下文用量：頭部顯示百分比，點開看細項
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
         quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
-        skin: 'foret',      // 皮膚：foret（黑森林）／dusty（正午 · 霧藍）
+        skin: 'foret',      // skin：foret（黑森林）／dusty（正午 · 霧藍）
     });
 
     function getContext() {
@@ -112,7 +112,7 @@
                 }
                 // 用頭部的底色：狀態列緊貼頭部，這條接縫最顯眼。
                 // 換膚時這裡沒跟著改，Android 就會在上下各留一條
-                // 別的皮膚的色帶。
+                // 別的 skin的色帶。
                 const sk = SKINS.find(x => x.id === settings.skin) || SKINS[0];
                 meta.setAttribute('content', sk.bar);
             } else if (meta && themeColorOrig !== undefined) {
@@ -235,7 +235,7 @@
     //     會持續長大、也是使用者唯一能處理的項目（做記憶）；
     //     其餘用明度單調遞減的中性可可階，識別靠文字標籤而非顏色。
     //     五色對底色 #241713 的對比皆 ≥3:1（實測 3.29～7.59）。
-    // 五個分項的顏色是「行內樣式」，CSS 換膚碰不到，所以每套皮膚各一組。
+    // 五個分項的顏色是「行內樣式」，CSS 換膚碰不到，所以每套 skin各一組。
     // 兩套都照同一個設計邏輯：只有「聊天記錄」上強調色（它是唯一會持續
     // 長大、也是使用者唯一能處理的項目），其餘是明度單調的中性階，
     // 識別靠文字標籤而非顏色。對比皆實測 ≥3:1（非文字元件的門檻）。
@@ -1020,7 +1020,7 @@
     // 來自另一個容器或另一個擴充（酒館助手也在美化 UI，且可能比本主題
     // 晚載入）。CSS 選不到祖先，所以這裡從彈窗往上走幾層，量到誰真的
     // 圓就地補一條行內樣式；行內樣式贏過任何外部 CSS。
-    // 只在正午皮膚動手，切回黑森林時把動過的清乾淨。
+    // 只在正午 skin動手，切回黑森林時把動過的清乾淨。
     const SQUARE_ANCHORS = 'dialog, .popup, .dialogue_popup, .drawer-content';
     function squareShells() {
         const on = settings.enabled && settings.skin === 'dusty';
@@ -1604,7 +1604,7 @@
             checkboxRow('foret_enabled', '套用主題', settings.enabled) +
             '<label class="flex-container alignItemsCenter" for="foret_skin" style="gap:8px;margin:0" ' +
             'title="顏色、圓角、字體與裝飾整組切換；功能完全相同">' +
-            '<span style="flex:1">皮膚</span>' +
+            '<span style="flex:1">Skin</span>' +
             `<select id="foret_skin" class="text_pole" style="width:190px;flex:none">${
                 SKINS.map(sk => `<option value="${sk.id}"${sk.id === settings.skin ? ' selected' : ''}>${sk.label}</option>`).join('')
             }</select>` +

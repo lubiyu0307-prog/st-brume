@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.23.2';
+    const VERSION = '3.23.3';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1422,34 +1422,28 @@
         });
     }
 
-    // 從角色卡的一段文字裡挑出第一句「可以放在角色名下面」的話。
-    // 卡片作者什麼都寫得出來——YAML／JSON 區塊、HTML 標籤、Markdown 標題、
-    // 表格、分隔線、{{macro}}——這些都要跳過，不然頭部會印出 ```yaml。
-    function firstProseLine(text) {
-        let inFence = false;
-        for (const raw of String(text || '').split('\n')) {
-            const s = raw.trim();
-            if (!s) continue;
-            // 程式碼圍籬：``` 或 ~~~ 開頭就整段跳過，直到關閉
-            if (/^(```|~~~)/.test(s)) { inFence = !inFence; continue; }
-            if (inFence) continue;
-            // 分隔線、YAML 文件標記、標題底線
-            if (/^[-=*_·—–~]{3,}$/.test(s)) continue;
-            // 以 < 開頭 ＝ 標記，不是人話（<card>、<name>霧生</name> 都算）
-            if (s.startsWith('<')) continue;
-            if (/^\{\{[^}]*\}\}$/.test(s)) continue;
-            // 表格列
-            if (/^\|.*\|$/.test(s)) continue;
-            // Markdown 標題是段落標籤（「### 角色設定」），不是狀態句，整行跳過
-            if (/^#{1,6}\s/.test(s)) continue;
-            // 去掉行首的引言／清單記號與包住整句的星號
-            const clean = s.replace(/^[>*+\-\s]+/, '').replace(/^\*+|\*+$/g, '').trim();
-            if (!clean) continue;
-            // 完全沒有文字或數字（純符號）就不算一句話
-            if (!/[\p{L}\p{N}]/u.test(clean)) continue;
-            return clean;
-        }
-        return '';
+    // 角色名下面那句狀態。
+    // 來源＝酒館的「創作者備註」（進階定義 → 創作者資訊 → Creator's Notes），
+    // 沒填才退到角色描述。取用順序照酒館自己的寫法（script.js:8732）：
+    // v2 卡的 data.creator_notes 優先於舊欄位 creatorcomment。
+    //
+    // 只看第一行，不往下挖。卡片內文通常是給模型看的設定資料，硬撈會撈出
+    // 一句作者根本沒打算露出來的話——第一行不是人話就留白，比猜一句好。
+    function headerTagline(ch) {
+        const src = String(ch?.data?.creator_notes || ch?.creatorcomment || '').trim()
+                 || String(ch?.description || '').trim();
+        const first = src.split('\n').map(s => s.trim()).find(Boolean) || '';
+        if (!first) return '';
+        if (/^(```|~~~)/.test(first)) return '';        // 程式碼圍籬
+        if (first.startsWith('<')) return '';           // HTML／XML 標記
+        if (/^\{\{[^}]*\}\}$/.test(first)) return '';   // 巨集
+        if (/^\|.*\|$/.test(first)) return '';          // 表格列
+        if (/^[-=*_·—–~]{3,}$/.test(first)) return '';  // 分隔線
+        if (/^#{1,6}\s/.test(first)) return '';         // Markdown 標題（段落標籤，不是狀態句）
+        // 去掉行首的引言／清單記號與包住整句的星號
+        const clean = first.replace(/^[>*+\-\s]+/, '').replace(/^\*+|\*+$/g, '').trim();
+        // 整行只剩符號也不算一句話
+        return /[\p{L}\p{N}]/u.test(clean) ? clean : '';
     }
 
     function updateHeader() {
@@ -1463,14 +1457,7 @@
                 if (ch) {
                     name = ch.name || '';
                     avatar = '/thumbnail?type=avatar&file=' + encodeURIComponent(ch.avatar || '');
-                    // 不能直接拿第一行——很多卡片的描述開頭是 ```yaml、<card>、
-                    // ### 標題或分隔線，直接取就會在角色名下面印出 ```yaml。
-                    // 依序試四個欄位，各取第一句「真的是人話」的行。
-                    const line = firstProseLine(ch.creatorcomment)
-                              || firstProseLine(ch.description)
-                              || firstProseLine(ch.personality)
-                              || firstProseLine(ch.scenario);
-                    sub = line.slice(0, 42);
+                    sub = headerTagline(ch).slice(0, 42);
                 } else if (ctx.groupId && Array.isArray(ctx.groups)) {
                     const g = ctx.groups.find(x => String(x.id) === String(ctx.groupId));
                     if (g) { name = g.name || ''; sub = (g.members || []).length + ' 位成員'; }

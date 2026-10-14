@@ -2785,3 +2785,123 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
         transform: translate(28px, 0);
     }
 }
+
+/* ═══ 聊天記錄＆首頁「最近的聊天」：好讀好找 ═══════════════════════
+   index.js 的 tidyPastChats／tidyRecentChats 在每張卡上加了 .fn-pc-*：
+   人話標題、正文第一句、人設＋最後聊到。原本的檔名、預覽、日期只藏起來
+   不刪——改名、匯出、刪除要讀它們的文字。
+   只在聊天記錄彈窗（#select_chat_div）動手；滑動選擇器也用 .select_chat_block，不碰。 */
+.fn-pc { display: none; }
+:root[data-foret] .fn-pc { display: block; }
+:root[data-foret] { --fn-pc-bw: 1px; }
+:root[data-foret][data-foret-skin='dusty'] { --fn-pc-bw: 2px; }
+
+/* 時間分組標頭 */
+:root[data-foret] #select_chat_div .fn-pc-group {
+    margin: 16px 2px 2px;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--fn-cherry-soft);
+}
+:root[data-foret] #select_chat_div .fn-pc-group:first-child { margin-top: 6px; }
+
+/* 卡片：標題｜筆｜正在聊 ／ 預覽 ／ 資訊｜按鈕 */
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "title pen now" "prev prev prev" "meta meta acts";
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: var(--fn-cake-2) !important;
+    border: var(--fn-pc-bw) solid var(--fn-line) !important;
+    border-radius: var(--fn-r-m) !important;
+}
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc]:hover { border-color: var(--fn-cherry) !important; }
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc][highlight] {
+    border-color: var(--fn-cherry) !important;
+    box-shadow: inset 4px 0 0 var(--fn-cherry);
+}
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] > #select_chat_name_wrapper,
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] > #select_chat_name_wrapper > div { display: contents !important; }
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .select_chat_block_filename,
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .select_chat_block_mes,
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .select_chat_info > small { display: none !important; }
+:root[data-foret] #select_chat_div .fn-pc-title {
+    grid-area: title;
+    min-width: 0;
+    font-size: 1.02em;
+    font-weight: 700;
+    color: var(--fn-cream);
+    overflow-wrap: anywhere;
+}
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .renameChatButton { grid-area: pen; padding: 4px; }
+:root[data-foret] #select_chat_div .fn-pc-now {
+    grid-area: now;
+    padding: 2px 8px;
+    font-size: 0.72em;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--fn-on-cherry);
+    background: var(--fn-cherry);
+    border-radius: var(--fn-r-l);
+}
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .select_chat_info { grid-area: meta; min-width: 0; }
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .select_chat_actions { grid-area: acts; gap: 18px; }
+
+/* 首頁：名字＋開始時間 ／ 預覽 ／ 資訊｜按鈕 */
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .recentChatInfo {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name name" "prev prev" "meta acts";
+    align-items: center;
+    gap: 4px 12px;
+}
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatNameContainer,
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatMessageContainer { display: contents !important; }
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatName {
+    grid-area: name;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    white-space: normal;
+}
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatName > span,
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatDate,
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatMessage,
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatStats { display: none !important; }
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .characterName { white-space: nowrap; }
+:root[data-foret] .welcomeRecent .fn-pc-sub {
+    font-size: 0.82em;
+    white-space: nowrap;
+    color: var(--fn-cocoa);
+}
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .chatActions { grid-area: acts; }
+
+/* 兩邊共用：預覽、資訊行 */
+:root[data-foret] .fn-pc-preview {
+    grid-area: prev;
+    min-width: 0;
+    font-size: 0.92em;
+    line-height: 1.6;
+    color: var(--fn-caramel);
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+:root[data-foret] .fn-pc-preview.is-empty { font-style: italic; opacity: 0.7; }
+:root[data-foret] .fn-pc-meta {
+    grid-area: meta;
+    min-width: 0;
+    font-size: 0.8em;
+    color: var(--fn-cocoa);
+    font-variant-numeric: tabular-nums;
+}
+:root[data-foret] .fn-pc-meta b { color: var(--fn-cream); }
+:root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .PastChat_cross,
+:root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .deleteChat { color: var(--fn-cherry-soft) !important; }

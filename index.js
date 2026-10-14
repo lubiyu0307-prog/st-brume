@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.23.3';
+    const VERSION = '3.24.0';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1214,6 +1214,239 @@
         } catch (_) { return false; }
     }
 
+    // ── 聊天記錄＆首頁「最近的聊天」：好讀好找 ─────────────────────
+    // 酒館印的是檔名（侯愷 - 2026-10-13@16h21m20s399ms）跟最後一則的「最後 400 字」
+    // ——角色卡每樓結尾都是狀態欄，截到的常常整段是 HTML。這裡改成：
+    // 人話標題、最後一則的正文第一句、玩家人設名字、一行「最後聊到」，再按時間分組。
+    // 原本的元素只用 CSS 藏起來、不改內容：改名、匯出、刪除都是讀它們的文字。
+    const PC_INLINE = /^(?:b|i|u|s|em|strong|br|span|small|p|q|font)$/i;
+    function pcClean(raw) {
+        let t = String(raw || '').replace(/^\s*\.\.\./, '');
+        // 被截斷或沒有開頭標籤的區塊（舊的思維鏈）：先出現 </x> 卻沒看到 <x，之前全丟
+        for (let guard = 0; guard < 20; guard++) {
+            const m = /<\/([A-Za-z][\w-]*)\s*>/.exec(t);
+            if (!m || PC_INLINE.test(m[1])) break;
+            if (new RegExp('<' + m[1] + '\\b', 'i').test(t.slice(0, m.index))) break;
+            t = t.slice(m.index + m[0].length);
+        }
+        t = t.replace(/^[^<]*?(?:="|class=|style=)[^<]*?>/, '');
+        t = t.replace(/<([A-Za-z][\w-]*)\b[^>]*>[\s\S]*?<\/\1\s*>/g, (all, n) => (PC_INLINE.test(n) ? all : '\n'));
+        t = t.replace(/<([A-Za-z][\w-]*)\b[^>]*>[\s\S]*$/, (all, n) => (PC_INLINE.test(n) ? all : ''));
+        t = t.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, ' ').replace(/<[^>]*$/, '');
+        t = t.replace(/^[^\[\]\n]*\|[^\[\]\n]*\]/, '');
+        t = t.replace(/\[[A-Za-z一-鿿]{1,12}\|[^\]]*(?:\]|$)/g, ' ');
+        t = t.replace(/_\.\w+\([^)]*\);?/g, ' ').replace(/```[\s\S]*?(```|$)/g, ' ');
+        t = t.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+        return t;
+    }
+    // 正文第一句；太短（「嗯。」）就接下一句，最多 120 字
+    function pcFirstLine(raw) {
+        const lines = pcClean(raw).split(/\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(s => s.length >= 2);
+        const text = lines.join(' ');
+        const re = /[^。！？!?…]*[。！？!?…]+[」』”’）)]*/g;
+        let out = '', m;
+        while ((m = re.exec(text)) && out.length < 12) out += m[0];
+        if (!out) out = text;
+        out = out.trim();
+        return out.length > 120 ? out.slice(0, 120) + '…' : out;
+    }
+    function pcParseDate(s) {
+        const m = /(\d{4})\D+(\d{1,2})\D+(\d{1,2})\D+?(上午|下午|AM|PM)?\s*(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(String(s || ''));
+        if (!m) return null;
+        let h = +m[5];
+        const ap = (m[4] || m[7] || '').toUpperCase();
+        if ((ap === '下午' || ap === 'PM') && h < 12) h += 12;
+        if ((ap === '上午' || ap === 'AM') && h === 12) h = 0;
+        return new Date(+m[1], +m[2] - 1, +m[3], h, +m[6]);
+    }
+    const pad2 = (n) => String(n).padStart(2, '0');
+    function pcDayDiff(d) {
+        const a = new Date(); a.setHours(0, 0, 0, 0);
+        const b = new Date(d); b.setHours(0, 0, 0, 0);
+        return Math.round((a - b) / 86400000);
+    }
+    function pcWhen(d) {
+        const hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+        const diff = pcDayDiff(d);
+        if (diff === 0) return '今天 ' + hm;
+        if (diff === 1) return '昨天 ' + hm;
+        if (d.getFullYear() === new Date().getFullYear()) return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm;
+        return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+    }
+    function pcGroup(d) {
+        if (!d) return '更早';
+        const diff = pcDayDiff(d);
+        if (diff <= 0) return '今天';
+        if (diff === 1) return '昨天';
+        if (diff < 7) return '這週';
+        if (d.getFullYear() === new Date().getFullYear()) return (d.getMonth() + 1) + ' 月';
+        return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月';
+    }
+    // 自動檔名 → 「10 月 13 日 16:21 開始」；自己改過名字的照原樣
+    function pcTitle(file) {
+        const m = /-\s*(\d{4})-(\d{2})-(\d{2})\s*@\s*(\d{2})h\s*(\d{2})m/.exec(file);
+        return m ? (+m[2]) + ' 月 ' + (+m[3]) + ' 日 ' + m[4] + ':' + m[5] + ' 開始' : file;
+    }
+    function pcSize(s) {
+        const m = /([\d.]+)\s*([KMG]?B)/i.exec(String(s || ''));
+        return m ? Math.round(+m[1]) + ' ' + m[2].toUpperCase() : '';
+    }
+    function pcEl(cls, text) {
+        const el = document.createElement('div');
+        el.className = 'fn-pc ' + cls;
+        el.textContent = text;
+        return el;
+    }
+
+    // 讀整個聊天檔拿「最後一則的正文」和人設。檔案大小沒變就用記住的結果
+    const PC_CACHE = 'foret-pc:';
+    let pcRunning = 0;
+    const pcQueue = [];
+    function pcLookup(avatar, file, sig) {
+        const key = PC_CACHE + avatar + '/' + file;
+        try {
+            const hit = JSON.parse(localStorage.getItem(key) || 'null');
+            if (hit && hit.sig === sig) return Promise.resolve(hit);
+        } catch (_) { }
+        return new Promise((resolve) => {
+            pcQueue.push({ avatar, file, sig, key, resolve });
+            pcPump();
+        });
+    }
+    function pcPump() {
+        while (pcRunning < 3 && pcQueue.length) {
+            const job = pcQueue.shift();
+            pcRunning++;
+            pcFetch(job).then(job.resolve, () => job.resolve(null)).finally(() => { pcRunning--; pcPump(); });
+        }
+    }
+    async function pcFetch({ avatar, file, sig, key }) {
+        const ctx = getContext();
+        const ch = (ctx?.characters || []).find(c => c.avatar === avatar);
+        if (!ch) return null;
+        const res = await fetch('/api/chats/get', {
+            method: 'POST',
+            headers: ctx.getRequestHeaders(),
+            body: JSON.stringify({ ch_name: ch.name, file_name: file.replace(/\.jsonl$/, ''), avatar_url: avatar }),
+        });
+        if (!res.ok) return null;
+        const chat = await res.json();
+        if (!Array.isArray(chat)) return null;
+        const msgs = chat.filter(m => m && typeof m.mes === 'string' && !m.is_system);
+        const last = msgs[msgs.length - 1];
+        const lock = chat[0]?.chat_metadata?.persona;
+        const lastUser = msgs.filter(m => m.is_user).pop();
+        const out = {
+            sig,
+            line: last ? pcFirstLine(last.mes) : '',
+            persona: (lock && ctx.powerUserSettings?.personas?.[lock]) || lastUser?.name || '',
+            empty: !last,
+        };
+        try { localStorage.setItem(key, JSON.stringify(out)); } catch (_) { }
+        return out;
+    }
+    function pcFill(card, prev, meta, metaText, hit, fallback) {
+        if (!card.isConnected) return;
+        if (hit) {
+            prev.textContent = hit.line || (hit.empty ? '還沒有訊息' : '最後一則沒有正文');
+            prev.classList.toggle('is-empty', !hit.line);
+            if (hit.persona) {
+                meta.textContent = '';
+                const who = document.createElement('b');
+                who.textContent = hit.persona;
+                meta.append(who, ' · ' + metaText);
+            }
+        } else {
+            const f = pcFirstLine(fallback);
+            prev.textContent = f || '最後一則沒有正文';
+            prev.classList.toggle('is-empty', !f);
+        }
+    }
+
+    function tidyPastChats() {
+        const list = document.getElementById('select_chat_div');
+        if (!list || !settings.enabled) return;
+        const ctx = getContext();
+        const avatar = !ctx?.groupId && ctx?.characters?.[ctx.characterId]?.avatar;
+        let lastGroup = null;
+        list.querySelectorAll(':scope > .select_chat_block_wrapper').forEach((wrap) => {
+            const block = wrap.querySelector('.select_chat_block');
+            if (!block) return;
+            const file = block.getAttribute('file_name') || '';
+            const dateText = block.querySelector('.chat_messages_date')?.textContent || '';
+            const date = pcParseDate(dateText);
+            const group = pcGroup(date);
+            const before = wrap.previousElementSibling;
+            if (group !== lastGroup && !(before && before.classList.contains('fn-pc-group'))) {
+                wrap.before(pcEl('fn-pc-group', group));
+            }
+            lastGroup = group;
+            if (block.dataset.fnPc === file) return;
+            block.dataset.fnPc = file;
+            block.querySelectorAll('.fn-pc').forEach(n => n.remove());
+
+            const title = pcEl('fn-pc-title', pcTitle(file));
+            title.title = file;
+            block.prepend(title);
+            if (block.hasAttribute('highlight')) block.append(pcEl('fn-pc-now', '正在聊'));
+
+            const rawMes = block.querySelector('.select_chat_block_mes')?.textContent || '';
+            const prev = pcEl('fn-pc-preview', '…');
+            block.append(prev);
+
+            const num = (/(\d+)/.exec(block.querySelector('.chat_messages_num')?.textContent || '') || [])[1];
+            const sizeText = block.querySelector('.chat_file_size')?.textContent || '';
+            const metaText = [date ? '最後 ' + pcWhen(date) : dateText, num ? num + ' 則' : '', pcSize(sizeText)]
+                .filter(Boolean).join(' · ');
+            const meta = pcEl('fn-pc-meta', metaText);
+            block.querySelector('.select_chat_info')?.append(meta);
+
+            if (!avatar) { pcFill(block, prev, meta, metaText, null, rawMes); return; }
+            pcLookup(avatar, file, pcSize(sizeText)).then(hit => pcFill(block, prev, meta, metaText, hit, rawMes));
+        });
+    }
+    function watchPastChats(tries) {
+        const list = document.getElementById('select_chat_div');
+        if (!list) {
+            if (tries < 40) setTimeout(() => watchPastChats(tries + 1), 500);
+            return;
+        }
+        try {
+            // 不防抖：清單一次整批換掉，晚一拍就會先閃一下原本那版
+            new MutationObserver(tidyPastChats).observe(list, { childList: true });
+        } catch (_) { }
+        tidyPastChats();
+    }
+
+    function tidyRecentChats() {
+        if (!settings.enabled) return;
+        document.querySelectorAll('.welcomeRecent .recentChat').forEach((card) => {
+            const file = card.getAttribute('data-file') || '';
+            if (card.dataset.fnPc === file) return;
+            card.dataset.fnPc = file;
+            card.querySelectorAll('.fn-pc').forEach(n => n.remove());
+
+            card.querySelector('.chatName')?.append(pcEl('fn-pc-sub', pcTitle(file)));
+
+            const rawMes = card.querySelector('.chatMessage')?.textContent || '';
+            const prev = pcEl('fn-pc-preview', '…');
+            card.querySelector('.chatMessageContainer')?.prepend(prev);
+
+            const dateEl = card.querySelector('.chatDate');
+            const date = pcParseDate(dateEl?.getAttribute('title')) || pcParseDate(dateEl?.textContent);
+            const num = (/(\d+)/.exec(card.querySelector('.counterBlock')?.textContent || '') || [])[1];
+            const sizeText = card.querySelector('.fileSize')?.textContent || '';
+            const metaText = [date ? '最後 ' + pcWhen(date) : (dateEl?.textContent || '').trim(), num ? num + ' 則' : '', pcSize(sizeText)]
+                .filter(Boolean).join(' · ');
+            const meta = pcEl('fn-pc-meta', metaText);
+            card.querySelector('.chatMessageContainer')?.append(meta);
+
+            const avatar = card.getAttribute('data-avatar');
+            if (!avatar || card.getAttribute('data-group')) { pcFill(card, prev, meta, metaText, null, rawMes); return; }
+            pcLookup(avatar, file, pcSize(sizeText)).then(hit => pcFill(card, prev, meta, metaText, hit, rawMes));
+        });
+    }
+
     function addProseCopyButtons() {
         if (!settings.copyprose) {
             document.querySelectorAll('#chat .fn-copy').forEach(b => b.remove());
@@ -1571,6 +1804,7 @@
                     markDaySeparators();
                     markWaiting();
                     addProseCopyButtons();
+                    tidyRecentChats();
         addQuickButtons();
         squareShells();
                     addQuickButtons();
@@ -1685,6 +1919,8 @@
         buildPanel();
         setTimeout(refreshCtxChip, 1200);
         addProseCopyButtons();
+        watchPastChats(0);
+        tidyRecentChats();
         let tries = 0;
         const retry = setInterval(() => {
             buildPanel();

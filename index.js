@@ -1090,11 +1090,11 @@
         chip.style.display = '';
         const s = spendSummary();
         if (s.credit) {
-            chip.textContent = 'NT$' + Math.max(0, Math.round(s.left)).toLocaleString();
+            chip.textContent = '剩 NT$' + Math.max(0, Math.round(s.left)).toLocaleString();
             chip.title = `Vertex 抵免額約剩 NT$${Math.round(s.left).toLocaleString()}（估算${s.mixed ? '，還沒校正，混著其他模型' : ''}）・本月 Vertex 約 ${ntd(s.byMonth.vertex || 0, s.rate)}・全部約 ${ntd(s.month, s.rate)}`;
             chip.dataset.level = s.left < s.credit * 0.1 ? 'hot' : (s.left < s.credit * 0.3 ? 'warm' : 'ok');
         } else {
-            chip.textContent = ntd(s.month, s.rate);
+            chip.textContent = '本月 ' + ntd(s.month, s.rate);
             chip.title = `本月約花 ${ntd(s.month, s.rate)}（估算）・今天 ${ntd(s.today, s.rate)}`;
             chip.dataset.level = 'ok';
         }

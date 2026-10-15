@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.25.3';
+    const VERSION = '3.25.4';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1111,7 +1111,7 @@
             + '<div class="fx-tiles">'
             + `  <div class="fx-tile"><b>${ntd(s.today, s.rate)}</b><span>今天</span></div>`
             + `  <div class="fx-tile"><b>${ntd(s.month, s.rate)}</b><span>本月</span></div>`
-            + (s.credit ? `  <div class="fx-tile"><b>NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><span>Vertex 抵免額約剩</span></div>` : '')
+            + (s.credit ? `  <div class="fx-tile"><b>NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><span>抵免額約剩</span></div>` : '')
             + '</div>'
             + `<div class="fx-note">${split ? `<span class="fx-meta">本月：${split}</span>` : ''}<span class="fx-meta">${last}</span>`
             + (s.mixed ? '<span class="fx-tip">抵免額之前是所有模型混在一起扣的，用主控台餘額校正一次，之後就只扣 Vertex。</span>' : '')

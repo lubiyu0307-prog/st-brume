@@ -2908,4 +2908,8 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 
 /* 花費估算：頭部第二顆小膠囊、上下文面板最下面一塊 */
 #foret-header .fh-spend { min-width: 52px; }
+/* 花費的格子只有三格，數字又長（NT$4,535），照上下文那排四格會擠出框外、標籤折成兩行（10/16） */
+#foret-ctx .fx-spend .fx-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#foret-ctx .fx-spend .fx-tile b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#foret-ctx .fx-spend .fx-tile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #foret-ctx .fx-spend { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--fn-line, rgba(255,255,255,.15)); }

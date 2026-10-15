@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.25.0';
+    const VERSION = '3.25.1';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -981,6 +981,19 @@
         const img = Math.min(Number(u.img) || 0, out);
         const think = Number(u.think) || 0;
         const usd = ((prompt - cached) * pin + cached * pin * 0.1 + (out - img + think) * pout + img * p.img) / 1e6;
+        addSpend(usd, model, est);
+    }
+
+    // Imagen 一張大約 US$0.04；Gemini 語音照念的字數估（一個中文字大約 6 個音訊 token，音訊輸出每百萬 US$20）
+    function recordExtra(url, reqBody) {
+        let body = {}; try { body = JSON.parse(reqBody || '{}'); } catch (_) { }
+        let usd = 0; let model = body.model || '';
+        if (url.includes('generate-image')) { usd = 0.04; model = model || 'imagen'; }
+        else { const n = String(body.text || '').length; usd = (n * 6 * 20 + n * 1) / 1e6; model = model || 'tts'; }
+        addSpend(usd, model, true);
+    }
+
+    function addSpend(usd, model, est) {
         if (!(usd > 0)) return;
         const k = spendDay();
         const log = Object.assign({}, settings.spendLog || {});
@@ -1048,7 +1061,9 @@
             try { url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || ''; } catch (_) { }
             const isGen = GEN_URLS.some(g => String(url).includes(g));
             const isGoogle = /generativelanguage\.googleapis\.com\/.*:(stream)?[gG]enerateContent/.test(String(url));
-            const watch = (settings.diag && isGen) || (settings.spend && (isGen || isGoogle));
+            // 酒館自己的 Google 生圖（Imagen）、語音：回應裡沒有 token 數，照張數／字數算
+            const isExtra = /\/api\/google\/(generate-image|generate-native-tts)/.test(String(url));
+            const watch = (settings.diag && isGen) || (settings.spend && (isGen || isGoogle || isExtra));
             if (!watch) return orig.apply(this, args);
             let reqBody = '';
             try { reqBody = typeof (args[1] && args[1].body) === 'string' ? args[1].body : ''; } catch (_) { }
@@ -1060,7 +1075,7 @@
                     const acc = newAcc();
                     const ct = (res.headers && res.headers.get('content-type')) || '';
                     const finish = () => {
-                        if (settings.spend && res.ok) { try { recordSpend(String(url), reqBody, acc); } catch (_) { } }
+                        if (settings.spend && res.ok) { try { isExtra ? recordExtra(String(url), reqBody) : recordSpend(String(url), reqBody, acc); } catch (_) { } }
                         if (!settings.diag || !isGen) return;
                         if (acc.len > 0 && res.ok) return;   // 有內容就不打擾
                         showDiag({ url: String(url), status: res.status, statusText: res.statusText, ok: res.ok, acc });

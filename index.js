@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.25.1';
+    const VERSION = '3.25.2';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -32,7 +32,7 @@
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
         quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
         skin: 'foret',      // skin：foret（黑森林）／dusty（正午 · 霧藍）
-        spend: true,        // 花費估算：讀每次回應的 token 數乘單價，頭部顯示本月花費／抵免額剩多少
+        spend: false,       // 花費估算：讀每次回應的 token 數乘單價，頭部顯示本月花費／抵免額剩多少
         spendCredit: 0,     // 抵免額（台幣）；0 = 沒設，只顯示花了多少
         spendSince: 0,      // 抵免額從哪一刻開始扣（校正時重設）
         spendRate: 32,      // 美金換台幣

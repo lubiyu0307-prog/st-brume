@@ -1064,7 +1064,26 @@
     }
     const ntd = (usd, rate) => 'NT$' + (usd * rate < 10 ? (usd * rate).toFixed(1) : Math.round(usd * rate).toLocaleString());
 
+    // 設定頁最上面那格：一眼看到還剩多少
+    function refreshSpendStatus() {
+        const box = document.querySelector('#foret_spend_status');
+        if (!box) return;
+        const s = spendSummary();
+        const split = Object.keys(SPEND_SOURCES).filter(k => s.byMonth[k] > 0).map(k => `${SPEND_SOURCES[k]} ${ntd(s.byMonth[k], s.rate)}`).join('・');
+        if (!s.credit) {
+            box.innerHTML = `<b>還沒填抵免額，所以算不出剩多少。</b><br>這個月目前花了約 ${ntd(s.month, s.rate)}${split ? `（${split}）` : '（全部模型加起來）'}。`;
+            return;
+        }
+        const d = new Date(settings.spendSince || Date.now());
+        const when = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        const used = (settings.spendSinceVertexUsd ?? settings.spendSinceUsd ?? 0) * s.rate;
+        box.innerHTML = `<b>Vertex 抵免額約剩 NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><br>`
+            + `${when} 填的是 NT$${Math.round(s.credit).toLocaleString()}，之後 Vertex 用了約 NT$${used < 10 ? used.toFixed(1) : Math.round(used).toLocaleString()}。`
+            + (split ? `<br><span style="opacity:.75">本月全部：${split}</span>` : '');
+    }
+
     function refreshSpendChip() {
+        refreshSpendStatus();
         const chip = document.querySelector('#foret-header .fh-spend');
         if (!chip) return;
         if (!settings.spend) { chip.style.display = 'none'; return; }
@@ -2079,13 +2098,14 @@
             checkboxRow('foret_spend', '花費估算（頭部顯示本月花費／抵免額約剩多少）', settings.spend,
                 '讀每次回應的 token 數乘公開單價，只讀不改；Google 沒有開放查餘額的 API，所以是估算') +
             '<div id="foret_spend_box" style="display:flex;flex-direction:column;gap:6px;padding-left:24px">' +
-            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">Vertex 抵免額（台幣，0 = 不設；AI Studio、Claude、GPT 不扣）</span>' +
-            `<input id="foret_spend_credit" type="number" min="0" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendCredit) || 0}"></label>` +
+            '<div id="foret_spend_status" style="padding:8px 10px;border:1px solid currentColor;border-radius:6px;line-height:1.6"></div>' +
+            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">Google Cloud 上看到的抵免額餘額（台幣）</span>' +
+            `<input id="foret_spend_credit" type="number" min="0" class="text_pole" style="width:110px;flex:none" placeholder="還沒填" value="${Number(settings.spendCredit) || ''}"></label>` +
+            '<small style="opacity:.7;margin-top:-2px">到 Google Cloud 主控台 → 帳單 → 抵免額，把「剩餘」的數字填進來。每次填都從那一刻重新算，只扣 Vertex（AI Studio 金鑰、Claude、GPT 不扣）。</small>' +
             '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">美金匯率</span>' +
             `<input id="foret_spend_rate" type="number" min="1" step="0.1" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendRate) || 32}"></label>` +
             '<div class="flex-container" style="gap:6px">' +
-            '<div id="foret_spend_fix" class="menu_button" title="打開 Google Cloud 主控台看到的餘額填進來，從現在重新起算（只扣 Vertex）">用主控台餘額校正</div>' +
-            '<div id="foret_spend_reset" class="menu_button" title="清掉每日紀錄（抵免額設定保留）">清除紀錄</div></div>' +
+            '<div id="foret_spend_reset" class="menu_button" style="white-space:nowrap;width:auto" title="清掉每日紀錄（抵免額設定保留）">清除每日紀錄</div></div>' +
             '<details><summary style="cursor:pointer;opacity:.75">單價表</summary>' +
             `<textarea id="foret_spend_prices" class="text_pole" rows="8" style="width:100%;font-family:monospace;font-size:12px">${(settings.spendPrices || SPEND_PRICES).replace(/</g, '&lt;')}</textarea>` +
             '<small style="opacity:.65">一行一個：模型名稱裡的關鍵字、輸入、輸出、圖片輸出（美金／每百萬 token），由上往下找第一個符合的。</small></details>' +
@@ -2116,19 +2136,12 @@
         panel.querySelector('#foret_spend').addEventListener('change', showSpendBox); showSpendBox();
         panel.querySelector('#foret_spend_credit').addEventListener('change', (e) => {
             const v = Math.max(0, Number(e.target.value) || 0);
-            // 第一次填抵免額：從現在開始扣
-            if (v && !settings.spendCredit) { settings.spendSince = Date.now(); settings.spendSinceUsd = 0; settings.spendSinceVertexUsd = 0; }
-            settings.spendCredit = v; saveSettings(); refreshSpendChip();
+            // 填的是主控台上「現在」的餘額：從這一刻重新扣
+            settings.spendCredit = v; settings.spendSince = Date.now(); settings.spendSinceUsd = 0; settings.spendSinceVertexUsd = 0;
+            saveSettings(); refreshSpendChip();
         });
         panel.querySelector('#foret_spend_rate').addEventListener('change', (e) => { settings.spendRate = Math.max(1, Number(e.target.value) || 32); saveSettings(); refreshSpendChip(); });
         panel.querySelector('#foret_spend_prices').addEventListener('change', (e) => { const v = e.target.value.trim(); settings.spendPrices = v === SPEND_PRICES ? '' : v; saveSettings(); });
-        panel.querySelector('#foret_spend_fix').addEventListener('click', () => {
-            const v = Number(prompt('Google Cloud 主控台上，抵免額現在還剩多少（台幣）？', settings.spendCredit ? String(Math.round(spendSummary().left)) : ''));
-            if (!(v >= 0)) return;
-            settings.spendCredit = v; settings.spendSince = Date.now(); settings.spendSinceUsd = 0; settings.spendSinceVertexUsd = 0;
-            panel.querySelector('#foret_spend_credit').value = v;
-            saveSettings(); refreshSpendChip();
-        });
         panel.querySelector('#foret_spend_reset').addEventListener('click', () => {
             if (!confirm('清掉每天的花費紀錄？（抵免額和起算點不動）')) return;
             settings.spendLog = {}; settings.spendLogBy = {}; settings.spendLast = null; saveSettings(); refreshSpendChip();

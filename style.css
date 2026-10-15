@@ -2905,3 +2905,7 @@ html[data-foret][data-foret-skin='dusty'] #chat .mes[data-foret-day]::before {
 :root[data-foret] .fn-pc-meta b { color: var(--fn-cream); }
 :root[data-foret] #select_chat_div .select_chat_block[data-fn-pc] .PastChat_cross,
 :root[data-foret] .welcomeRecent .recentChat[data-fn-pc] .deleteChat { color: var(--fn-cherry-soft) !important; }
+
+/* 花費估算：頭部第二顆小膠囊、上下文面板最下面一塊 */
+#foret-header .fh-spend { min-width: 52px; }
+#foret-ctx .fx-spend { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--fn-line, rgba(255,255,255,.15)); }

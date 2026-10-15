@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.24.0';
+    const VERSION = '3.25.0';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -32,6 +32,14 @@
         copyprose: true,    // 每則訊息加一顆「複製正文」（不含狀態欄）
         quickbar: true,     // 快捷列前面插入主題按鈕（做記憶／再來一段）
         skin: 'foret',      // skin：foret（黑森林）／dusty（正午 · 霧藍）
+        spend: true,        // 花費估算：讀每次回應的 token 數乘單價，頭部顯示本月花費／抵免額剩多少
+        spendCredit: 0,     // 抵免額（台幣）；0 = 沒設，只顯示花了多少
+        spendSince: 0,      // 抵免額從哪一刻開始扣（校正時重設）
+        spendRate: 32,      // 美金換台幣
+        spendPrices: '',    // 單價表（空白 = 用內建的）
+        spendLog: {},       // { 'YYYY-MM-DD': 美金 }，只留最近 70 天
+        spendSinceUsd: 0,   // 起算以來累積的美金
+        spendLast: null,    // 最後一筆 { usd, model, ts, est }
     });
 
     function getContext() {
@@ -621,7 +629,8 @@
                 : '')
             + (tip ? `<span class="fx-tip">${tip}</span>` : '')
             + `<span class="fx-meta">v${VERSION}·${u.source}</span>`
-            + '</div>';
+            + '</div>'
+            + spendBlock();
         document.body.appendChild(box);
         box.querySelector('.fx-x').addEventListener('click', () => box.remove());
     }
@@ -798,6 +807,13 @@
                 if (p !== undefined) acc.usage.prompt = p;
                 if (o !== undefined) acc.usage.out = o;
                 if (t !== undefined) acc.usage.think = t;
+                const cached = pick(u.cachedContentTokenCount, u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens, u.cache_read_input_tokens);
+                if (cached !== undefined) acc.usage.cached = cached;
+                // Gemini 生圖：輸出 token 裡有一部分是圖片，單價高很多
+                if (Array.isArray(u.candidatesTokensDetails)) {
+                    const img = u.candidatesTokensDetails.filter(x => x && /IMAGE/i.test(x.modality)).reduce((a, x) => a + (Number(x.tokenCount) || 0), 0);
+                    if (img) acc.usage.img = img;
+                }
             }
 
             const e = d.error;
@@ -916,6 +932,113 @@
         } catch (_) { }
     }
 
+    // ── 花費估算 ───────────────────────────────────────────────
+    // Google 沒有開放「抵免額還剩多少」的 API，只能自己記帳：每次回應裡的 token 數
+    //（usageMetadata）× 單價，累積成今天／本月／起算以來。照的是公開定價，跟帳單會有一點差，
+    // 所以設定裡可以用主控台看到的餘額「校正」，從那一刻重新起算。
+    // 只看得到這個瀏覽器送出去的請求（酒館正文、小手機、生圖都算）；別台裝置各自記，存在同一份設定裡。
+    const SPEND_PRICES = [
+        '# 關鍵字 輸入 輸出 圖片輸出（美金／每百萬 token，照 Google 定價頁改）',
+        'pro-image 2 12 120',
+        'flash-image 0.5 3 60',
+        'flash-lite 0.25 1.5',
+        'flash 0.75 3.75',
+        'pro 2 12',
+        'claude 3 15',
+        'gpt 2.5 10',
+    ].join('\n');
+
+    function priceFor(model) {
+        const m = String(model || '').toLowerCase();
+        for (const line of String(settings.spendPrices || SPEND_PRICES).split('\n')) {
+            const t = line.trim(); if (!t || t.startsWith('#')) continue;
+            const [k, i, o, img] = t.split(/\s+/);
+            if (k && m.includes(k.toLowerCase())) return { in: Number(i) || 0, out: Number(o) || 0, img: Number(img) || Number(o) || 0 };
+        }
+        return { in: 2, out: 12, img: 60 };
+    }
+
+    const spendDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    function recordSpend(url, reqBody, acc) {
+        let model = ''; let body = null;
+        try { body = reqBody ? JSON.parse(reqBody) : null; } catch (_) { }
+        model = (body && body.model) || ((url.match(/models\/([^:/?]+)/) || [])[1]) || '';
+        const u = acc.usage || {};
+        let est = false;
+        let prompt = Number(u.prompt); let out = Number(u.out) || 0;
+        if (!Number.isFinite(prompt)) {
+            // 回應裡沒有 token 數（有些來源不回）：照字數粗估，標成估算
+            est = true;
+            prompt = Math.round((reqBody || '').length / 2.2);
+            out = Math.round((acc.len || 0) / 1.3);
+        }
+        if (!prompt && !out) return;
+        const p = priceFor(model);
+        const long = /pro/i.test(model) && prompt > 200000;   // 超過 20 萬 token 的長上下文比較貴
+        const pin = p.in * (long ? 2 : 1); const pout = p.out * (long ? 1.5 : 1);
+        const cached = Math.min(Number(u.cached) || 0, prompt);
+        const img = Math.min(Number(u.img) || 0, out);
+        const think = Number(u.think) || 0;
+        const usd = ((prompt - cached) * pin + cached * pin * 0.1 + (out - img + think) * pout + img * p.img) / 1e6;
+        if (!(usd > 0)) return;
+        const k = spendDay();
+        const log = Object.assign({}, settings.spendLog || {});
+        log[k] = (log[k] || 0) + usd;
+        const keep = Object.keys(log).sort().slice(-70);
+        settings.spendLog = Object.fromEntries(keep.map(x => [x, log[x]]));
+        settings.spendSinceUsd = (settings.spendSinceUsd || 0) + usd;
+        settings.spendLast = { usd, model, ts: Date.now(), est };
+        saveSettings();
+        refreshSpendChip();
+    }
+
+    function spendSummary() {
+        const rate = Number(settings.spendRate) || 32;
+        const log = settings.spendLog || {};
+        const today = log[spendDay()] || 0;
+        const ym = spendDay().slice(0, 7);
+        const month = Object.entries(log).filter(([k]) => k.startsWith(ym)).reduce((a, [, v]) => a + v, 0);
+        const credit = Number(settings.spendCredit) || 0;
+        const left = credit ? credit - (settings.spendSinceUsd || 0) * rate : null;
+        return { rate, today, month, credit, left, last: settings.spendLast };
+    }
+    const ntd = (usd, rate) => 'NT$' + (usd * rate < 10 ? (usd * rate).toFixed(1) : Math.round(usd * rate).toLocaleString());
+
+    function refreshSpendChip() {
+        const chip = document.querySelector('#foret-header .fh-spend');
+        if (!chip) return;
+        if (!settings.spend) { chip.style.display = 'none'; return; }
+        chip.style.display = '';
+        const s = spendSummary();
+        if (s.credit) {
+            chip.textContent = 'NT$' + Math.max(0, Math.round(s.left)).toLocaleString();
+            chip.title = `抵免額約剩 NT$${Math.round(s.left).toLocaleString()}（估算）・本月約 ${ntd(s.month, s.rate)}`;
+            chip.dataset.level = s.left < s.credit * 0.1 ? 'hot' : (s.left < s.credit * 0.3 ? 'warm' : 'ok');
+        } else {
+            chip.textContent = ntd(s.month, s.rate);
+            chip.title = `本月約花 ${ntd(s.month, s.rate)}（估算）・今天 ${ntd(s.today, s.rate)}`;
+            chip.dataset.level = 'ok';
+        }
+    }
+
+    function spendBlock() {
+        if (!settings.spend) return '';
+        const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const s = spendSummary();
+        const last = s.last ? `最後一次 ${ntd(s.last.usd, s.rate)}（${esc(String(s.last.model || '?'))}${s.last.est ? '・字數粗估' : ''}）` : '還沒有記到花費';
+        return '<div class="fx-spend">'
+            + '<div class="fx-head"><span class="fx-title">花費（估算）</span><span class="fx-sub">照公開單價，跟帳單會有差</span></div>'
+            + '<div class="fx-tiles">'
+            + `  <div class="fx-tile"><b>${ntd(s.today, s.rate)}</b><span>今天</span></div>`
+            + `  <div class="fx-tile"><b>${ntd(s.month, s.rate)}</b><span>本月</span></div>`
+            + (s.credit ? `  <div class="fx-tile"><b>NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><span>抵免額約剩</span></div>` : '')
+            + '</div>'
+            + `<div class="fx-note"><span class="fx-meta">${last}</span>`
+            + (s.credit ? '' : '<span class="fx-tip">到「擴充功能 → 黑森林」填抵免額，這裡就會顯示還剩多少。</span>')
+            + '</div></div>';
+    }
+
     function installDiagnostics() {
         if (typeof window.fetch !== 'function' || window.__foretDiag) return;
         window.__foretDiag = true;
@@ -923,8 +1046,12 @@
         window.fetch = function (...args) {
             let url = '';
             try { url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || ''; } catch (_) { }
-            const watch = settings.diag && GEN_URLS.some(g => String(url).includes(g));
+            const isGen = GEN_URLS.some(g => String(url).includes(g));
+            const isGoogle = /generativelanguage\.googleapis\.com\/.*:(stream)?[gG]enerateContent/.test(String(url));
+            const watch = (settings.diag && isGen) || (settings.spend && (isGen || isGoogle));
             if (!watch) return orig.apply(this, args);
+            let reqBody = '';
+            try { reqBody = typeof (args[1] && args[1].body) === 'string' ? args[1].body : ''; } catch (_) { }
 
             return orig.apply(this, args).then((res) => {
                 // 分析在背景跑，立刻把原始 response 還給 ST——不阻塞串流
@@ -933,6 +1060,8 @@
                     const acc = newAcc();
                     const ct = (res.headers && res.headers.get('content-type')) || '';
                     const finish = () => {
+                        if (settings.spend && res.ok) { try { recordSpend(String(url), reqBody, acc); } catch (_) { } }
+                        if (!settings.diag || !isGen) return;
                         if (acc.len > 0 && res.ok) return;   // 有內容就不打擾
                         showDiag({ url: String(url), status: res.status, statusText: res.statusText, ok: res.ok, acc });
                     };
@@ -948,6 +1077,7 @@
                 } catch (_) { }
                 return res;
             }, (e) => {
+                if (!settings.diag || !isGen) throw e;
                 try {
                     const acc = newAcc();
                     acc.err.add((e && e.message) || String(e));
@@ -1637,6 +1767,7 @@
             '<span class="fh-ava"><img class="fh-avatar" alt="" /></span>' +
             '<div class="fh-text"><div class="fh-name"></div><div class="fh-sub"></div></div>' +
             '<div class="fh-ctx" title="上下文用量">—</div>' +
+            '<div class="fh-ctx fh-spend" title="花費（估算）" style="display:none">—</div>' +
             '<div class="fh-btn fh-tools fa-solid fa-sliders" title="工具列"></div>';
         document.body.appendChild(el);
 
@@ -1644,6 +1775,11 @@
             const html = document.documentElement;
             if (html.getAttribute('data-foret-tools') === 'on') html.removeAttribute('data-foret-tools');
             else html.setAttribute('data-foret-tools', 'on');
+        });
+        el.querySelector('.fh-spend').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (document.getElementById('foret-ctx')) { document.getElementById('foret-ctx').remove(); return; }
+            try { renderContextPanel(await computeContextUsage()); } catch (_) { }
         });
         el.querySelector('.fh-ctx').addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -1877,6 +2013,20 @@
                 '酒館內建的複製會連狀態欄的 HTML 一起帶走；這顆只取畫面上的敘述與對話') +
             checkboxRow('foret_diag', '空回診斷（回覆是空的時候說明原因）', settings.diag,
                 '只讀取回應副本來顯示 finish_reason／安全阻擋／token 用量，不修改請求或回應') +
+            checkboxRow('foret_spend', '花費估算（頭部顯示本月花費／抵免額約剩多少）', settings.spend,
+                '讀每次回應的 token 數乘公開單價，只讀不改；Google 沒有開放查餘額的 API，所以是估算') +
+            '<div id="foret_spend_box" style="display:flex;flex-direction:column;gap:6px;padding-left:24px">' +
+            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">抵免額（台幣，0 = 不設）</span>' +
+            `<input id="foret_spend_credit" type="number" min="0" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendCredit) || 0}"></label>` +
+            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">美金匯率</span>' +
+            `<input id="foret_spend_rate" type="number" min="1" step="0.1" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendRate) || 32}"></label>` +
+            '<div class="flex-container" style="gap:6px">' +
+            '<div id="foret_spend_fix" class="menu_button" title="打開 Google Cloud 主控台看到的餘額填進來，從現在重新起算">用主控台餘額校正</div>' +
+            '<div id="foret_spend_reset" class="menu_button" title="清掉每日紀錄（抵免額設定保留）">清除紀錄</div></div>' +
+            '<details><summary style="cursor:pointer;opacity:.75">單價表</summary>' +
+            `<textarea id="foret_spend_prices" class="text_pole" rows="8" style="width:100%;font-family:monospace;font-size:12px">${(settings.spendPrices || SPEND_PRICES).replace(/</g, '&lt;')}</textarea>` +
+            '<small style="opacity:.65">一行一個：模型名稱裡的關鍵字、輸入、輸出、圖片輸出（美金／每百萬 token），由上往下找第一個符合的。</small></details>' +
+            '</div>' +
             '    </div>' +
             '  </div>' +
             '</div>';
@@ -1897,6 +2047,29 @@
         bind('foret_ctxmeter', 'ctxmeter');
         bind('foret_copyprose', 'copyprose');
         bind('foret_quickbar', 'quickbar');
+        bind('foret_spend', 'spend');
+        const spendBox = panel.querySelector('#foret_spend_box');
+        const showSpendBox = () => { spendBox.style.display = settings.spend ? 'flex' : 'none'; refreshSpendChip(); };
+        panel.querySelector('#foret_spend').addEventListener('change', showSpendBox); showSpendBox();
+        panel.querySelector('#foret_spend_credit').addEventListener('change', (e) => {
+            const v = Math.max(0, Number(e.target.value) || 0);
+            // 第一次填抵免額：從現在開始扣
+            if (v && !settings.spendCredit) { settings.spendSince = Date.now(); settings.spendSinceUsd = 0; }
+            settings.spendCredit = v; saveSettings(); refreshSpendChip();
+        });
+        panel.querySelector('#foret_spend_rate').addEventListener('change', (e) => { settings.spendRate = Math.max(1, Number(e.target.value) || 32); saveSettings(); refreshSpendChip(); });
+        panel.querySelector('#foret_spend_prices').addEventListener('change', (e) => { const v = e.target.value.trim(); settings.spendPrices = v === SPEND_PRICES ? '' : v; saveSettings(); });
+        panel.querySelector('#foret_spend_fix').addEventListener('click', () => {
+            const v = Number(prompt('Google Cloud 主控台上，抵免額現在還剩多少（台幣）？', settings.spendCredit ? String(Math.round(spendSummary().left)) : ''));
+            if (!(v >= 0)) return;
+            settings.spendCredit = v; settings.spendSince = Date.now(); settings.spendSinceUsd = 0;
+            panel.querySelector('#foret_spend_credit').value = v;
+            saveSettings(); refreshSpendChip();
+        });
+        panel.querySelector('#foret_spend_reset').addEventListener('click', () => {
+            if (!confirm('清掉每天的花費紀錄？（抵免額和起算點不動）')) return;
+            settings.spendLog = {}; settings.spendLast = null; saveSettings(); refreshSpendChip();
+        });
         panel.querySelector('#foret_skin').addEventListener('change', (e) => {
             settings.skin = SKINS.some(x => x.id === e.target.value) ? e.target.value : 'foret';
             apply();
@@ -1918,6 +2091,7 @@
         apply();
         buildPanel();
         setTimeout(refreshCtxChip, 1200);
+        setTimeout(refreshSpendChip, 1200);
         addProseCopyButtons();
         watchPastChats(0);
         tidyRecentChats();

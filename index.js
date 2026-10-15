@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.25.2';
+    const VERSION = '3.25.3';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -744,7 +744,7 @@
     ];
 
     function newAcc() {
-        return { len: 0, finish: new Set(), block: new Set(), safety: new Set(), err: new Set(), usage: {} };
+        return { len: 0, imgs: 0, finish: new Set(), block: new Set(), safety: new Set(), err: new Set(), usage: {} };
     }
 
     // 從一段回應 JSON 收集線索。涵蓋 OpenAI／Claude／Gemini／Kobold
@@ -787,6 +787,13 @@
                 }
             }
             if (d.promptFeedback && d.promptFeedback.blockReason) acc.block.add(String(d.promptFeedback.blockReason));
+            // 生出來的圖（酒館整理成 responseContent，舊版是 candidates），估花費時一張一張算
+            {
+                const ps = [...((d.responseContent && d.responseContent.parts) || []),
+                    ...(Array.isArray(d.candidates) ? d.candidates.flatMap(c => (c && c.content && c.content.parts) || []) : [])];
+                const seen = new Set();
+                for (const p of ps) { const im = p && (p.inlineData || p.inline_data); if (im && im.data && !seen.has(im.data.length)) { seen.add(im.data.length); acc.imgs++; } }
+            }
 
             if (Array.isArray(d.results)) {
                 for (const r of d.results) {
@@ -967,18 +974,29 @@
         const u = acc.usage || {};
         let est = false;
         let prompt = Number(u.prompt); let out = Number(u.out) || 0;
+        let estImg = 0;
         if (!Number.isFinite(prompt)) {
             // 回應裡沒有 token 數（有些來源不回）：照字數粗估，標成估算
+            // 附的照片是一大串 base64，不能照字數算（10/15 一張快照被算成幾十萬 token）：拿掉，一張照 Gemini 的 1120 token 算
             est = true;
-            prompt = Math.round((reqBody || '').length / 2.2);
+            const raw = reqBody || '';
+            const b64 = /(?:data:[\w/+.-]+;base64,|"data"\s*:\s*")[A-Za-z0-9+/=]{200,}/g;
+            const nPics = (raw.match(b64) || []).length;
+            prompt = Math.round(raw.replace(b64, '').length / 2.2) + nPics * 1120;
             out = Math.round((acc.len || 0) / 1.3);
+            // 生出來的圖：Pro 1K、2K 都是 1120 token，4K 2000；Flash 1K 1120、2K 1680、4K 2520
+            if (acc.imgs) {
+                const res = String((body && (body.request_image_resolution || (body.generationConfig && body.generationConfig.imageConfig && body.generationConfig.imageConfig.imageSize))) || '1K').toUpperCase();
+                const per = /pro/i.test(model) ? (res === '4K' ? 2000 : 1120) : (res === '4K' ? 2520 : res === '2K' ? 1680 : 1120);
+                estImg = acc.imgs * per; out += estImg;
+            }
         }
         if (!prompt && !out) return;
         const p = priceFor(model);
         const long = /pro/i.test(model) && prompt > 200000;   // 超過 20 萬 token 的長上下文比較貴
         const pin = p.in * (long ? 2 : 1); const pout = p.out * (long ? 1.5 : 1);
         const cached = Math.min(Number(u.cached) || 0, prompt);
-        const img = Math.min(Number(u.img) || 0, out);
+        const img = Math.min(Number(u.img) || estImg, out);
         const think = Number(u.think) || 0;
         const usd = ((prompt - cached) * pin + cached * pin * 0.1 + (out - img + think) * pout + img * p.img) / 1e6;
         addSpend(usd, model, est);

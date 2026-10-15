@@ -38,7 +38,9 @@
         spendRate: 32,      // 美金換台幣
         spendPrices: '',    // 單價表（空白 = 用內建的）
         spendLog: {},       // { 'YYYY-MM-DD': 美金 }，只留最近 70 天
-        spendSinceUsd: 0,   // 起算以來累積的美金
+        spendSinceUsd: 0,   // 起算以來累積的美金（全部的模型）
+        spendSinceVertexUsd: null, // 起算以來 Vertex 累積的美金；抵免額只扣這個（null = 3.26 以前的紀錄，還沒分開）
+        spendLogBy: {},     // { 'YYYY-MM-DD': { vertex, aistudio, claude, openai, other: 美金 } }
         spendLast: null,    // 最後一筆 { usd, model, ts, est }
     });
 
@@ -965,6 +967,20 @@
         return { in: 2, out: 12, img: 60 };
     }
 
+    // 這筆錢是從哪裡花的：Vertex 才扣抵免額，AI Studio 金鑰、Claude、GPT 另外算
+    const SPEND_SOURCES = { vertex: 'Vertex', aistudio: 'AI Studio', claude: 'Claude', openai: 'GPT', other: '其他' };
+    function spendSource(url, body) {
+        if (/generativelanguage\.googleapis\.com/.test(url)) return 'aistudio';   // 小手機直接拿 AI Studio 金鑰叫的
+        const src = String((body && (body.chat_completion_source || body.api || body.source)) || '').toLowerCase();
+        if (src.includes('vertex')) return 'vertex';
+        if (src === 'makersuite' || src.includes('google')) return 'aistudio';
+        if (src === 'claude') return 'claude';
+        if (src === 'openai') return 'openai';
+        const m = String((body && body.model) || '').toLowerCase();
+        if (!src && /gemini|imagen/.test(m)) return 'vertex';   // 沒寫來源的 Google 模型，多半是酒館自己的連線
+        return 'other';
+    }
+
     const spendDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     function recordSpend(url, reqBody, acc) {
@@ -999,7 +1015,7 @@
         const img = Math.min(Number(u.img) || estImg, out);
         const think = Number(u.think) || 0;
         const usd = ((prompt - cached) * pin + cached * pin * 0.1 + (out - img + think) * pout + img * p.img) / 1e6;
-        addSpend(usd, model, est);
+        addSpend(usd, model, est, spendSource(url, body));
     }
 
     // Imagen 一張大約 US$0.04；Gemini 語音照念的字數估（一個中文字大約 6 個音訊 token，音訊輸出每百萬 US$20）
@@ -1008,18 +1024,22 @@
         let usd = 0; let model = body.model || '';
         if (url.includes('generate-image')) { usd = 0.04; model = model || 'imagen'; }
         else { const n = String(body.text || '').length; usd = (n * 6 * 20 + n * 1) / 1e6; model = model || 'tts'; }
-        addSpend(usd, model, true);
+        addSpend(usd, model, true, spendSource(url, body));
     }
 
-    function addSpend(usd, model, est) {
+    function addSpend(usd, model, est, source = 'other') {
         if (!(usd > 0)) return;
         const k = spendDay();
         const log = Object.assign({}, settings.spendLog || {});
         log[k] = (log[k] || 0) + usd;
         const keep = Object.keys(log).sort().slice(-70);
         settings.spendLog = Object.fromEntries(keep.map(x => [x, log[x]]));
+        const by = Object.assign({}, settings.spendLogBy || {});
+        by[k] = Object.assign({}, by[k] || {}); by[k][source] = (by[k][source] || 0) + usd;
+        settings.spendLogBy = Object.fromEntries(Object.keys(by).sort().slice(-70).map(x => [x, by[x]]));
         settings.spendSinceUsd = (settings.spendSinceUsd || 0) + usd;
-        settings.spendLast = { usd, model, ts: Date.now(), est };
+        if (source === 'vertex' && settings.spendSinceVertexUsd != null) settings.spendSinceVertexUsd += usd;   // 還沒校正過（null）就先照全部算
+        settings.spendLast = { usd, model, ts: Date.now(), est, source };
         saveSettings();
         refreshSpendChip();
     }
@@ -1031,8 +1051,16 @@
         const ym = spendDay().slice(0, 7);
         const month = Object.entries(log).filter(([k]) => k.startsWith(ym)).reduce((a, [, v]) => a + v, 0);
         const credit = Number(settings.spendCredit) || 0;
-        const left = credit ? credit - (settings.spendSinceUsd || 0) * rate : null;
-        return { rate, today, month, credit, left, last: settings.spendLast };
+        // 抵免額只扣 Vertex；3.26 以前沒分開的紀錄先照全部算，校正一次之後就準了
+        const vUsd = settings.spendSinceVertexUsd ?? (settings.spendSinceUsd || 0);
+        const left = credit ? credit - vUsd * rate : null;
+        const byMonth = {};
+        for (const [k, v] of Object.entries(settings.spendLogBy || {})) {
+            if (!k.startsWith(ym)) continue;
+            for (const [src, usd] of Object.entries(v)) byMonth[src] = (byMonth[src] || 0) + usd;
+        }
+        const mixed = settings.spendSinceVertexUsd == null && !!credit;
+        return { rate, today, month, credit, left, last: settings.spendLast, byMonth, mixed };
     }
     const ntd = (usd, rate) => 'NT$' + (usd * rate < 10 ? (usd * rate).toFixed(1) : Math.round(usd * rate).toLocaleString());
 
@@ -1044,7 +1072,7 @@
         const s = spendSummary();
         if (s.credit) {
             chip.textContent = 'NT$' + Math.max(0, Math.round(s.left)).toLocaleString();
-            chip.title = `抵免額約剩 NT$${Math.round(s.left).toLocaleString()}（估算）・本月約 ${ntd(s.month, s.rate)}`;
+            chip.title = `Vertex 抵免額約剩 NT$${Math.round(s.left).toLocaleString()}（估算${s.mixed ? '，還沒校正，混著其他模型' : ''}）・本月 Vertex 約 ${ntd(s.byMonth.vertex || 0, s.rate)}・全部約 ${ntd(s.month, s.rate)}`;
             chip.dataset.level = s.left < s.credit * 0.1 ? 'hot' : (s.left < s.credit * 0.3 ? 'warm' : 'ok');
         } else {
             chip.textContent = ntd(s.month, s.rate);
@@ -1057,15 +1085,17 @@
         if (!settings.spend) return '';
         const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const s = spendSummary();
-        const last = s.last ? `最後一次 ${ntd(s.last.usd, s.rate)}（${esc(String(s.last.model || '?'))}${s.last.est ? '・字數粗估' : ''}）` : '還沒有記到花費';
+        const last = s.last ? `最後一次 ${ntd(s.last.usd, s.rate)}（${esc(String(s.last.model || '?'))}${s.last.source ? '・' + (SPEND_SOURCES[s.last.source] || s.last.source) : ''}${s.last.est ? '・字數粗估' : ''}）` : '還沒有記到花費';
+        const split = Object.keys(SPEND_SOURCES).filter(k => s.byMonth[k] > 0).map(k => `${SPEND_SOURCES[k]} ${ntd(s.byMonth[k], s.rate)}`).join('・');
         return '<div class="fx-spend">'
             + '<div class="fx-head"><span class="fx-title">花費（估算）</span><span class="fx-sub">照公開單價，跟帳單會有差</span></div>'
             + '<div class="fx-tiles">'
             + `  <div class="fx-tile"><b>${ntd(s.today, s.rate)}</b><span>今天</span></div>`
             + `  <div class="fx-tile"><b>${ntd(s.month, s.rate)}</b><span>本月</span></div>`
-            + (s.credit ? `  <div class="fx-tile"><b>NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><span>抵免額約剩</span></div>` : '')
+            + (s.credit ? `  <div class="fx-tile"><b>NT$${Math.max(0, Math.round(s.left)).toLocaleString()}</b><span>Vertex 抵免額約剩</span></div>` : '')
             + '</div>'
-            + `<div class="fx-note"><span class="fx-meta">${last}</span>`
+            + `<div class="fx-note">${split ? `<span class="fx-meta">本月：${split}</span>` : ''}<span class="fx-meta">${last}</span>`
+            + (s.mixed ? '<span class="fx-tip">抵免額之前是所有模型混在一起扣的，用主控台餘額校正一次，之後就只扣 Vertex。</span>' : '')
             + (s.credit ? '' : '<span class="fx-tip">到「擴充功能 → 黑森林」填抵免額，這裡就會顯示還剩多少。</span>')
             + '</div></div>';
     }
@@ -2049,12 +2079,12 @@
             checkboxRow('foret_spend', '花費估算（頭部顯示本月花費／抵免額約剩多少）', settings.spend,
                 '讀每次回應的 token 數乘公開單價，只讀不改；Google 沒有開放查餘額的 API，所以是估算') +
             '<div id="foret_spend_box" style="display:flex;flex-direction:column;gap:6px;padding-left:24px">' +
-            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">抵免額（台幣，0 = 不設）</span>' +
+            '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">Vertex 抵免額（台幣，0 = 不設；AI Studio、Claude、GPT 不扣）</span>' +
             `<input id="foret_spend_credit" type="number" min="0" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendCredit) || 0}"></label>` +
             '<label class="flex-container alignItemsCenter" style="gap:8px;margin:0"><span style="flex:1">美金匯率</span>' +
             `<input id="foret_spend_rate" type="number" min="1" step="0.1" class="text_pole" style="width:110px;flex:none" value="${Number(settings.spendRate) || 32}"></label>` +
             '<div class="flex-container" style="gap:6px">' +
-            '<div id="foret_spend_fix" class="menu_button" title="打開 Google Cloud 主控台看到的餘額填進來，從現在重新起算">用主控台餘額校正</div>' +
+            '<div id="foret_spend_fix" class="menu_button" title="打開 Google Cloud 主控台看到的餘額填進來，從現在重新起算（只扣 Vertex）">用主控台餘額校正</div>' +
             '<div id="foret_spend_reset" class="menu_button" title="清掉每日紀錄（抵免額設定保留）">清除紀錄</div></div>' +
             '<details><summary style="cursor:pointer;opacity:.75">單價表</summary>' +
             `<textarea id="foret_spend_prices" class="text_pole" rows="8" style="width:100%;font-family:monospace;font-size:12px">${(settings.spendPrices || SPEND_PRICES).replace(/</g, '&lt;')}</textarea>` +
@@ -2087,7 +2117,7 @@
         panel.querySelector('#foret_spend_credit').addEventListener('change', (e) => {
             const v = Math.max(0, Number(e.target.value) || 0);
             // 第一次填抵免額：從現在開始扣
-            if (v && !settings.spendCredit) { settings.spendSince = Date.now(); settings.spendSinceUsd = 0; }
+            if (v && !settings.spendCredit) { settings.spendSince = Date.now(); settings.spendSinceUsd = 0; settings.spendSinceVertexUsd = 0; }
             settings.spendCredit = v; saveSettings(); refreshSpendChip();
         });
         panel.querySelector('#foret_spend_rate').addEventListener('change', (e) => { settings.spendRate = Math.max(1, Number(e.target.value) || 32); saveSettings(); refreshSpendChip(); });
@@ -2095,13 +2125,13 @@
         panel.querySelector('#foret_spend_fix').addEventListener('click', () => {
             const v = Number(prompt('Google Cloud 主控台上，抵免額現在還剩多少（台幣）？', settings.spendCredit ? String(Math.round(spendSummary().left)) : ''));
             if (!(v >= 0)) return;
-            settings.spendCredit = v; settings.spendSince = Date.now(); settings.spendSinceUsd = 0;
+            settings.spendCredit = v; settings.spendSince = Date.now(); settings.spendSinceUsd = 0; settings.spendSinceVertexUsd = 0;
             panel.querySelector('#foret_spend_credit').value = v;
             saveSettings(); refreshSpendChip();
         });
         panel.querySelector('#foret_spend_reset').addEventListener('click', () => {
             if (!confirm('清掉每天的花費紀錄？（抵免額和起算點不動）')) return;
-            settings.spendLog = {}; settings.spendLast = null; saveSettings(); refreshSpendChip();
+            settings.spendLog = {}; settings.spendLogBy = {}; settings.spendLast = null; saveSettings(); refreshSpendChip();
         });
         panel.querySelector('#foret_skin').addEventListener('change', (e) => {
             settings.skin = SKINS.some(x => x.id === e.target.value) ? e.target.value : 'foret';

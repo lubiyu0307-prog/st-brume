@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.26.4';
+    const VERSION = '3.26.5';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1283,6 +1283,7 @@
                 return '/inject id=fn-more position=chat depth=0 role=system ephemeral=true '
                     + '【導演提示】玩家這一回合沒有新的輸入。請直接從上一則訊息的最後一刻往下推進劇情：'
                     + '寫新的動作、新的事件或新的對話。不要重述、改寫或再次回應玩家上一則說過的話。'
+                    + '只往前推一個段落，篇幅照平常，狀態欄等固定格式照常完整輸出。'
                     + ' | /trigger';
             },
             // /trigger 會清空輸入框（防遞歸），先接住草稿再放回去

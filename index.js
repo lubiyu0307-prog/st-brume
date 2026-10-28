@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.26.3';
+    const VERSION = '3.26.4';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -1273,7 +1273,18 @@
         {
             id: 'more', cmd: 'trigger', icon: 'fa-forward',
             title: '再來一段：讓他生成一則新訊息，劇情繼續推進（不是續寫在同一個泡泡裡）',
-            run: '/trigger',
+            // 光跑 /trigger，預設裡「回應玩家最新輸入」那類指令會讓他回頭
+            // 再回應一次玩家上一則，看起來像在重複玩家的話。先塞一句只用
+            // 一次的導演提示（ephemeral：生成結束或停止就自動移除）。
+            // 最後一則是玩家自己的話時就不塞，那時本來就該回應她。
+            run: (ctx) => {
+                const last = ctx.chat && ctx.chat[ctx.chat.length - 1];
+                if (!last || last.is_user) return '/trigger';
+                return '/inject id=fn-more position=chat depth=0 role=system ephemeral=true '
+                    + '【導演提示】玩家這一回合沒有新的輸入。請直接從上一則訊息的最後一刻往下推進劇情：'
+                    + '寫新的動作、新的事件或新的對話。不要重述、改寫或再次回應玩家上一則說過的話。'
+                    + ' | /trigger';
+            },
             // /trigger 會清空輸入框（防遞歸），先接住草稿再放回去
             keepDraft: true,
         },
@@ -1292,7 +1303,8 @@
         const ta = document.getElementById('send_textarea');
         const draft = (item.keepDraft && ta) ? ta.value : '';
         try {
-            await ctx.executeSlashCommandsWithOptions(item.run);
+            const run = typeof item.run === 'function' ? item.run(ctx) : item.run;
+            await ctx.executeSlashCommandsWithOptions(run);
         } catch (_) { return false; }
         if (draft && ta) {
             // /trigger 的清空是排在 setTimeout 裡的，要等它做完才放回

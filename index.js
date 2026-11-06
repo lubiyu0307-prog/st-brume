@@ -12,7 +12,7 @@
 
     const MODULE = 'foret_noire';
     const LS_KEY = 'foret_noire_settings';
-    const VERSION = '3.26.5';
+    const VERSION = '3.26.6';
 
     // skin：顏色與造型都由 style.css 的 data-foret-skin 分流；
     // 這裡只需要清單與「狀態列該染什麼色」——Android 的上下系統列
@@ -341,6 +341,16 @@
         return data;
     }
 
+    // 酒館內建的正規表示式引擎（唯讀借用：只拿來算「送出後的長度」，
+    // 不改任何訊息）。載不到就退回量原文。
+    let REGEX_ENGINE = null;
+    async function loadRegexEngine() {
+        if (REGEX_ENGINE !== null) return REGEX_ENGINE;
+        try { REGEX_ENGINE = await import('/scripts/extensions/regex/engine.js'); }
+        catch (_) { REGEX_ENGINE = false; }
+        return REGEX_ENGINE;
+    }
+
     async function computeContextUsage() {
         const ctx = getContext();
         if (!ctx) return null;
@@ -390,7 +400,20 @@
 
         const msgs = (ctx.chat || []).filter(m => m && !m.is_system);
         const msgText = m => (m.name ? m.name + ': ' : '') + (m.mes || '');
-        const chatText = msgs.map(msgText).join('\n');
+        // 估算要量「真的會送出去」的樣子：預設／角色卡的 prompt 層正規表示式
+        //（剝掉舊思維鏈、舊狀態欄、舊下酒菜）先套過再算。直接量原文會把
+        // 送前就被剝掉的東西也算進去——侯愷測試窗原文 21.7 萬字、送出只剩
+        // 10.2 萬，面板卻喊 100%、說掉了 12 則（3.26.6）。
+        const eng = await loadRegexEngine();
+        const sentText = (m, depth) => {
+            let t = m.mes || '';
+            if (eng && typeof eng.getRegexedString === 'function') {
+                try { t = eng.getRegexedString(t, m.is_user ? 1 : 2, { isPrompt: true, depth }); } catch (_) { }
+            }
+            return (m.name ? m.name + ': ' : '') + t;
+        };
+        const sentTexts = msgs.map((m, i) => sentText(m, msgs.length - 1 - i));
+        const chatText = sentTexts.join('\n');
 
         // 「幽靈」訊息：被 /hide 收起來的真實對話（記憶書做完記憶會自動
         // 隱藏，預設就是開的）。酒館組提示詞時 chat.filter(!is_system)
@@ -471,10 +494,8 @@
         // 總量等比校準，避免對每一則各打一次分詞 API。
         const fixed = character + persona + world;
         const budget = Math.max(0, max - reserve - fixed);
-        const weights = msgs.map(m => {
-            const t = m && m.extra && Number(m.extra.token_count);
-            return (t && t > 0) ? t : estTok(msgText(m));
-        });
+        // extra.token_count 量的是原文，跟送出的樣子對不上，一律用送出版粗估比例
+        const weights = sentTexts.map(t => estTok(t));
         const estSum = weights.reduce((a, b) => a + b, 0);
         const scale = estSum > 0 ? historyTotal / estSum : 0;
         let simHistory = 0, kept = 0;
